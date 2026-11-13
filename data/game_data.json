@@ -216,5 +216,19 @@
       "style": "grappler",
       "tag": "서브미션 위협 · 레슬링이 약점"
     }
-  ]
+  ],
+  "facilities": {
+    "boxing": {
+      "name": "복싱 센터",
+      "stat": "striking"
+    },
+    "wrestling": {
+      "name": "레슬링 센터",
+      "stat": "wrestling"
+    },
+    "grappling": {
+      "name": "주짓수 도장",
+      "stat": "grappling"
+    }
+  }
 }

@@ -52,6 +52,37 @@ static func valid(state: Variant) -> bool:
 			if not report.get(k) is Array: return false
 			for line in report[k]:
 				if not line is String: return false
+		for key in ["fatigue_before","recovery_total","natural_recovery","fatigue_added"]:
+			if report.has(key) and not numeric(report[key],0,1600): return false
+		if report.has("stat_gains"):
+			if not report.stat_gains is Dictionary: return false
+			for key in report.stat_gains:
+				if not key in GameCatalog.data().stat_names or not numeric(report.stat_gains[key],0,100): return false
+		if report.has("timeline"):
+			if not report.timeline is Array or report.timeline.size() != 16: return false
+			for event in report.timeline:
+				if not event is Dictionary: return false
+				for key in ["action_id","scene_id","name","slot"]:
+					if not event.get(key) is String: return false
+				if not whole(event.get("week"),1,4): return false
+				for key in ["fatigue_before","fatigue_after","recovered","potential_recovery"]:
+					if not numeric(event.get(key),0,100): return false
+				for key in ["cash_before","cash_after"]:
+					if not whole(event.get(key),0,1000000000): return false
+				if not event.get("gains") is Dictionary or not event.get("skipped") is bool: return false
+				for key in event.gains:
+					if not key in GameCatalog.data().stat_names or not numeric(event.gains[key],0,100): return false
+	if not whole(state.account_legacy.get("lp"),0,1000000000): return false
+	for id in state.gym_facilities:
+		if not id in GameCatalog.data().facilities or not state.gym_facilities[id] is Dictionary: return false
+		if not whole(state.gym_facilities[id].get("level"),0,3): return false
+	for entry in state.hall_of_fame:
+		if not entry is Dictionary: return false
+		for key in ["name","athlete_id"]:
+			if not entry.get(key) is String or entry[key].is_empty(): return false
+		for key in ["months","age","wins","losses","draws","lp"]:
+			if not whole(entry.get(key),0,1000000000): return false
+	if a.has("retired") and not a.retired is bool: return false
 	var settings: Dictionary = state.settings
 	if not settings.get("strategy") is String or not settings.strategy in GameCatalog.data().strategy_names: return false
 	if not settings.get("fixed_seed") is bool or not whole(settings.get("seed"),0,2147483647): return false

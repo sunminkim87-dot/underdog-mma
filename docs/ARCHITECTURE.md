@@ -1,26 +1,19 @@
-# 구조와 다음 작업의 경계
+# v0.2 구조
 
-```text
-project.godot                Android 세로 기준 540×960, Compatibility 렌더러
-scenes/main.tscn             시작 씬
-scripts/ui/main.gd          화면·입력·확인창·저장 성공 후 상태 확정
-scripts/core/catalog.gd    데이터 로드·기본 일정
-scripts/core/career.gd      생성·월간 계산·상대·경기 보상
-scripts/core/bout.gd        UI/디스크에 의존하지 않는 시드 기반 경기
-scripts/core/save_store.gd  스키마 검증·임시 저장·백업·복구
- data/game_data.json        훈련·생활·스타일·경제·상대·전략 표시 정의
-assets/                     한글 폰트와 임시 SVG 그래픽
- tests/                     로직·실제 렌더링 UI 테스트·결과 JSON·스크린샷
- docs/                      원본 기획서·실행법·범위·설계·라이선스
- tools/                     Windows 자동 테스트 실행 도우미
-```
+- `scripts/core/career.gd`: 기존 육성·경제 + 경기일 차단·회복 타임라인·은퇴·LP 시설·다음 선수.
+- `scripts/core/bout.gd`: 기존 재현 가능한 MMA 경기 엔진.
+- `scripts/core/save_store.gd`: 기존 v1 파일 호환 + 새 타임라인/시설/명예의 전당 검증.
+- `scripts/core/online_gateway.gd`: HTTP 세션, 서버 상태/행동 요청, revision, 임의 request_id. 서버 캐시와 로컬 테스트 파일 분리.
+- `scripts/ui/main.gd`: 로비와 육성·일정 카드·행동 선택·기록·명예의 전당·시설·상점·서버 연결 화면.
+- `scripts/ui/components/activity_scene.gd`: 배경 아틀라스와 애니메이션 스프라이트, 팔레트, 행동별 장면 배치.
+- `scripts/ui/components/month_playback.gd`: 실제 계산 타임라인 재생, 회복/피로/활력 게이지, 배속, 중복 없는 건너뛰기.
+- `scripts/ui/components/activity_icon.gd`: 행동별 픽셀 아이콘.
+- `assets/art/life_atlas.png`, `athlete_sheet.png`, `sprite_palette.gdshader`: 오리지널 생성 아트와 색상 처리. 기존 P0 아트는 삭제하지 않고 사용만 중단했다.
+- `data/game_data.json`: 경제·행동·스타일·상대·시설 정의.
+- `server/app.py`: 개발 서버, 계정별 SQLite, 세션, 트랜잭션, 중복/충돌 보호, 검증기 경계.
+- `server/bridge.gd`: 서버가 같은 Godot 규칙을 호출한다. 클라이언트가 제출한 성장 결과를 저장하지 않는다.
+- `tests/`: 로직, 렌더링 UI, 실제 HTTP Godot 연동, 서버 검증.
 
-`Career.month`와 `Career.fight`는 입력을 깊은 복사한 뒤 결과를 반환한다. UI는 결과를 저장한 후에만 진행을 확정한다. 월말 미납·저장 실패 시 입력 상태가 유지된다. 월간 미리보기도 같은 계산 함수를 사용하므로 서로 다른 예측 공식을 관리하지 않는다.
+계승에서 선수 고유 ID를 유지한다. 이번 범위의 은퇴 기록은 명예의 전당에 저장되며 미래 코치/체육관은 `source_athlete_id`/`founder_athlete_id`로 해당 원본을 참조하도록 확장한다. 이번 버전에는 코치 전직이나 선수 설립 체육관 효과를 넣지 않았다.
 
-경기 함수는 지역 `RandomNumberGenerator`만 사용한다. 향후 경기 상성·기술 숙련을 고도화해도 UI를 재작성하지 않도록 계산 경계를 두었다. 현재는 기본 능력치에서 방어를 파생하며 별도 세부 숙련 필드를 도입하지 않는다.
-
-저장 루트의 현재 선수와 영구 데이터를 분리했다. P2에서 은퇴 기록을 `hall_of_fame`에 보관하고 코치는 `source_athlete_id`, 체육관은 `founder_athlete_id`로 원본 선수 ID를 참조한다. 은퇴 시 원본 기록을 지우지 않고 이전 선수의 스냅샷을 보존한다. 현재 P0에는 실제 은퇴·계승 처리가 없다.
-
-Android 방향 설정과 터치 스크롤 가능한 UI는 준비됐지만, APK 서명/배포·백그라운드 종료·실기기 터치·기기 안전 영역/키보드 검증은 아직 수행하지 않았다. Android 프리셋을 완성했다고 표시하지 않는다. Windows 실행 파일에는 한글 폰트와 데이터 리소스를 포함한다.
-
-초기 튜닝은 `data/game_data.json`만 수정한다. 경기 확률과 상태 전환은 `bout.gd`에 둔다. 다음 단계에서 규칙이 늘면 경기 규칙도 별도 데이터로 옮긴다.
+정식 게임은 온라인을 목표로 한다. 실행 가능한 개발 서버와 클라이언트 연결은 준비했지만 운영 배포·영구 계정·Google Play 실제 결제·보안 저장소·운영 성능은 아직 미완성이다. 개발 테스트 로컬 저장을 실제 결제 권한의 근거로 사용하지 않는다.

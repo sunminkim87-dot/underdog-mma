@@ -29,6 +29,7 @@ func run() -> void:
 	check(is_equal_approx(result.report.fatigue,10.8), "slot fatigue + weekly recovery")
 	var state = original.duplicate(true)
 	for _i in 12:
+		if Career.fight_due(state): state = Career.fight(state,"balanced",8000+_i).state
 		state.schedule = GameCatalog.default_schedule()
 		for w in state.schedule: w.life = "job"
 		var month = Career.month(state)
@@ -98,6 +99,52 @@ func run() -> void:
 		check(not SaveStore.valid(bad), "reject malformed " + change)
 	check(SaveStore.save_game(original,"/proc/underdog_no_write.json") != OK, "unwritable location returns error")
 	for ext in ["", ".bak", ".tmp"]: DirAccess.remove_absolute(ProjectSettings.globalize_path(path+ext))
+	var due_state = Career.month(Career.month(original).state).state
+	var before_due = JSON.stringify(due_state)
+	var blocked = Career.month(due_state)
+	check(not blocked.ok and blocked.get("fight_due",false),"scheduled fight blocks month at the due month")
+	check(JSON.stringify(due_state) == before_due,"blocked calendar leaves state unchanged")
+	due_state.current_athlete.months = 5
+	check(not Career.month(due_state).ok,"old overdue save cannot bypass scheduled fight")
+	var traced = Career.month(original)
+	check(traced.report.timeline.size() == 16,"twelve actions plus four natural recovery steps")
+	var traced_fatigue: float = original.current_athlete.fatigue
+	var recovered_sum: float = 0
+	for event in traced.report.timeline:
+		check(is_equal_approx(event.fatigue_before,traced_fatigue),"timeline fatigue continuity")
+		traced_fatigue = event.fatigue_after
+		recovered_sum += event.recovered
+		check(event.recovered <= event.potential_recovery+.01,"actual recovery never exceeds nominal")
+	check(is_equal_approx(traced_fatigue,traced.report.fatigue),"displayed timeline matches final game fatigue")
+	check(is_equal_approx(recovered_sum,traced.report.recovery_total+traced.report.natural_recovery),"recovery totals equal actual deltas")
+	var all_rest = original.duplicate(true)
+	all_rest.current_athlete.fatigue = 3
+	all_rest.schedule = GameCatalog.default_schedule("recovery")
+	var rested = Career.month(all_rest)
+	check(rested.report.timeline[0].recovered == 3 and rested.report.timeline[0].potential_recovery == 18,"low fatigue clamps actual recovery and retains potential")
+	var old_format = traced.state.duplicate(true)
+	old_format.current_athlete.month_history[0].erase("timeline")
+	check(SaveStore.valid(old_format),"old P0 report without timeline still loads")
+	var malformed = traced.state.duplicate(true)
+	malformed.current_athlete.month_history[0].timeline[0].fatigue_after = "bad"
+	check(not SaveStore.valid(malformed),"malformed animation data rejected")
+	var legacy_test = Career.create("은퇴 선수","striker")
+	legacy_test.current_athlete.months = 18
+	legacy_test.current_athlete.age = 19
+	legacy_test.current_athlete.wins = 3
+	legacy_test.current_athlete.next_fight_month = 20
+	check(Career.can_retire(legacy_test),"valid career qualifies for retirement")
+	var retired = Career.retire(legacy_test)
+	check(retired.ok and retired.state.hall_of_fame.size()==1 and retired.state.account_legacy.lp==16,"retirement archives athlete and awards LP once")
+	check(not Career.retire(retired.state).ok,"cannot farm retirement LP twice")
+	var upgraded = Career.upgrade(retired.state,"boxing")
+	check(upgraded.ok and upgraded.state.account_legacy.lp==11,"facility upgrade spends LP")
+	var generation = Career.new_generation(upgraded.state,"후배","striker")
+	check(generation.current_athlete.age==18 and generation.gym_facilities.boxing.level==1 and generation.hall_of_fame.size()==1,"new athlete retains permanent history and facilities")
+	var trained = Career.month(generation)
+	check(trained.state.current_athlete.stats.striking > traced.state.current_athlete.stats.striking,"facility training bonus affects actual growth")
+	check(not Career.upgrade(original,"boxing").ok,"no free facility upgrade")
+	check(not Career.month(retired.state).ok and not Career.fight(retired.state,"balanced",12).ok,"retired athlete cannot train or fight")
 	var long_run = Career.create("장기 테스트","grappler")
 	for i in 150:
 		for week in long_run.schedule: week.life = "job"
