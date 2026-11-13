@@ -1,13 +1,17 @@
 # Windows 게임 다운로드
 
-**[P0 테스트 빌드 다운로드 페이지](https://github.com/sunminkim87-dot/underdog-mma/releases/tag/v0.1.0-p0)**
+**[Windows 게임 ZIP 바로 다운로드](https://github.com/sunminkim87-dot/underdog-mma/raw/refs/heads/main/downloads/UNDERDOG_P0_Windows.zip)** · 약 37MB
 
-1. 위 페이지의 **Assets**에서 **UNDERDOG_P0_Windows.zip**을 받습니다.
+[전체 Godot 프로젝트 ZIP 다운로드](https://github.com/sunminkim87-dot/underdog-mma/raw/refs/heads/main/downloads/UNDERDOG_P0_Godot_Project.zip) · 약 1.9MB
+
+[P0 테스트 빌드 안내 페이지](https://github.com/sunminkim87-dot/underdog-mma/releases/tag/v0.1.0-p0)
+
+1. 위의 **Windows 게임 ZIP 바로 다운로드** 링크를 눌러 받습니다.
 2. Windows에서 오른쪽 클릭 → **모두 압축 풀기**를 선택합니다.
 3. 풀린 폴더의 **UNDERDOG_P0.exe**를 더블클릭합니다. Godot 설치는 필요 없습니다.
 4. 그림이 있는 설명은 ZIP 안의 **START_HERE.html**을 엽니다.
 
-전체 프로젝트 보관용 ZIP은 같은 페이지의 **UNDERDOG_P0_Godot_Project.zip**입니다. GitHub가 자동 제공하는 Source code ZIP과 구분해 주세요.
+전체 프로젝트 보관용 ZIP은 위의 **전체 Godot 프로젝트 ZIP 다운로드** 링크로 받습니다. GitHub가 자동 제공하는 Source code ZIP과 구분해 주세요.
 
 이 저장소에는 기존에 완성한 프로젝트 파일을 복사했습니다. Windows 실행 파일은 공식 템플릿으로 내보내기를 검증했으며 Windows OS에서 직접 실행하는 검증은 아직 하지 않았습니다.
 

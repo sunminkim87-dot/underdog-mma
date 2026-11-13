@@ -1,0 +1,12 @@
+UNDERDOG P0 v0.1.0 — build verification
+Engine: Godot 4.6.3 stable official
+Windows: official release x86_64 template, PE32+ x86_64 GUI, embedded PCK footer verified
+Windows EXE SHA256: 088df0421bce12528d68fe40ac3c7714135f542160c9ec9741d1d96342107dc8
+Core: 4707 passed, 0 failures
+UI: 391 passed, 0 failures, seven rendered screenshots
+Seeded match sample: 6400; additional long-run career: 150 months
+Clean source: import succeeded, core checks 4707 passed
+Linux release: export and headless startup exit 0, no script errors
+Windows native OS execution: NOT performed in this Linux environment
+Android APK/device tests: NOT performed
+See docs/TEST_REPORT.md for limits and detailed evidence.
