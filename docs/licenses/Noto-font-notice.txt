@@ -1,0 +1,5 @@
+© 2014-2021 Adobe (http://www.adobe.com/).
+
+Noto Sans CJK KR Regular, subset for Latin and Korean.
+Source: https://github.com/notofonts/noto-cjk
+License: SIL Open Font License 1.1. See Noto-OFL.txt.

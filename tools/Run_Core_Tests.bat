@@ -1,0 +1,4 @@
+@echo off
+setlocal
+cd /d "%~dp0.."
+powershell.exe -NoProfile -Command "Add-Type -AssemblyName System.Windows.Forms; $picker = New-Object System.Windows.Forms.OpenFileDialog; $picker.Title = 'Select Godot 4.6.3 editor executable'; $picker.Filter = 'Godot executable (*.exe)|*.exe'; if ($picker.ShowDialog() -ne 'OK') { exit 1 }; $engine = $picker.FileName; $p = Start-Process -FilePath $engine -ArgumentList @('--headless','--editor','--path','.','--import','--quit') -Wait -PassThru -NoNewWindow; if ($p.ExitCode -ne 0) { Read-Host 'Import failed. Press Enter'; exit 1 }; $p = Start-Process -FilePath $engine -ArgumentList @('--headless','--path','.','--script','res://tests/test_core.gd') -Wait -PassThru -NoNewWindow -RedirectStandardOutput 'tests/core_console.log' -RedirectStandardError 'tests/core_stderr.log'; Get-Content 'tests/core_console.log'; Read-Host ('Finished. Exit code: ' + $p.ExitCode + '. Press Enter'); exit $p.ExitCode"

@@ -1,0 +1,32 @@
+{
+	"checks": 4707,
+	"engine": "4.6.3-stable (official)",
+	"failures": [],
+	"fatigued_wins_out_of_700": 70,
+	"healthy_wins_out_of_700": 295,
+	"mean_duration_seconds": 813.433333333333,
+	"methods_in_style_sweep": {
+		"KO/TKO": 117,
+		"서브미션": 934,
+		"판정": 3449
+	},
+	"simulated_bouts": 6400,
+	"strategy_wins_out_of_100": {
+		"balanced": 46,
+		"counter": 49,
+		"striking": 48,
+		"submission": 38,
+		"wrestling": 43
+	},
+	"style_player_win_rates": {
+		"grappler_vs_grappler": 0.498,
+		"grappler_vs_striker": 0.428,
+		"grappler_vs_wrestler": 0.482,
+		"striker_vs_grappler": 0.468,
+		"striker_vs_striker": 0.434,
+		"striker_vs_wrestler": 0.452,
+		"wrestler_vs_grappler": 0.496,
+		"wrestler_vs_striker": 0.434,
+		"wrestler_vs_wrestler": 0.468
+	}
+}

@@ -1,0 +1,14 @@
+{
+	"checks": 391,
+	"failures": [],
+	"rendered": true,
+	"screenshots": [
+		"01_creation",
+		"02_home",
+		"03_schedule",
+		"04_fight",
+		"05_result",
+		"06_records",
+		"07_tall_phone"
+	]
+}

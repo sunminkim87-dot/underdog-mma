@@ -1,0 +1,220 @@
+{
+  "version": 1,
+  "stat_names": {
+    "striking": "타격",
+    "wrestling": "레슬링",
+    "grappling": "그래플링",
+    "power": "파워",
+    "endurance": "지구력",
+    "speed": "스피드",
+    "mental": "멘탈"
+  },
+  "style_names": {
+    "striker": "스트라이커",
+    "wrestler": "레슬러",
+    "grappler": "그래플러"
+  },
+  "style_bonus": {
+    "striker": {
+      "striking": 12,
+      "speed": 4
+    },
+    "wrestler": {
+      "wrestling": 12,
+      "power": 4
+    },
+    "grappler": {
+      "grappling": 12,
+      "mental": 4
+    }
+  },
+  "starting_cash": 100,
+  "base_stat": 24,
+  "living_cost": 28,
+  "gym_cost": 8,
+  "weekly_recovery": 8,
+  "aux_scale": 0.55,
+  "first_fight_month": 2,
+  "fight_gap": 3,
+  "show_money": 12,
+  "win_bonus": 10,
+  "actions": {
+    "boxing": {
+      "name": "복싱",
+      "cost": 3,
+      "fatigue": 11,
+      "gains": {
+        "striking": 2.8,
+        "speed": 0.6
+      },
+      "kind": "training"
+    },
+    "kickboxing": {
+      "name": "킥복싱",
+      "cost": 3,
+      "fatigue": 12,
+      "gains": {
+        "striking": 2.2,
+        "power": 0.8
+      },
+      "kind": "training"
+    },
+    "wrestling": {
+      "name": "레슬링",
+      "cost": 3,
+      "fatigue": 13,
+      "gains": {
+        "wrestling": 2.8,
+        "endurance": 0.6
+      },
+      "kind": "training"
+    },
+    "bjj": {
+      "name": "주짓수",
+      "cost": 3,
+      "fatigue": 11,
+      "gains": {
+        "grappling": 2.8,
+        "mental": 0.6
+      },
+      "kind": "training"
+    },
+    "judo": {
+      "name": "유도",
+      "cost": 3,
+      "fatigue": 12,
+      "gains": {
+        "wrestling": 1.7,
+        "power": 1,
+        "grappling": 0.5
+      },
+      "kind": "training"
+    },
+    "weights": {
+      "name": "웨이트",
+      "cost": 2,
+      "fatigue": 10,
+      "gains": {
+        "power": 2.5,
+        "endurance": 0.5
+      },
+      "kind": "training"
+    },
+    "cardio": {
+      "name": "유산소",
+      "cost": 1,
+      "fatigue": 9,
+      "gains": {
+        "endurance": 2.5,
+        "speed": 0.5
+      },
+      "kind": "training"
+    },
+    "agility": {
+      "name": "민첩성",
+      "cost": 2,
+      "fatigue": 9,
+      "gains": {
+        "speed": 2.5,
+        "striking": 0.4
+      },
+      "kind": "training"
+    },
+    "sparring": {
+      "name": "스파링",
+      "cost": 4,
+      "fatigue": 15,
+      "gains": {
+        "striking": 1,
+        "wrestling": 1,
+        "grappling": 1,
+        "mental": 1
+      },
+      "kind": "training"
+    },
+    "mental": {
+      "name": "멘탈",
+      "cost": 1,
+      "fatigue": 4,
+      "gains": {
+        "mental": 2.5
+      },
+      "kind": "training"
+    },
+    "rest": {
+      "name": "휴식 / 회복",
+      "cost": 0,
+      "fatigue": -18,
+      "gains": {},
+      "kind": "training"
+    },
+    "job": {
+      "name": "편의점 알바",
+      "cost": 0,
+      "fatigue": 10,
+      "gains": {},
+      "kind": "life",
+      "income": 18
+    },
+    "delivery": {
+      "name": "배달 알바",
+      "cost": 0,
+      "fatigue": 16,
+      "gains": {
+        "endurance": 0.4
+      },
+      "kind": "life",
+      "income": 23
+    },
+    "life_rest": {
+      "name": "충분한 휴식",
+      "cost": 0,
+      "fatigue": -22,
+      "gains": {},
+      "kind": "life",
+      "income": 0
+    }
+  },
+  "main_ids": [
+    "boxing",
+    "kickboxing",
+    "wrestling",
+    "bjj",
+    "judo",
+    "weights",
+    "cardio",
+    "agility",
+    "sparring",
+    "mental",
+    "rest"
+  ],
+  "life_ids": [
+    "job",
+    "delivery",
+    "life_rest"
+  ],
+  "strategy_names": {
+    "balanced": "균형",
+    "striking": "공격적 타격",
+    "counter": "카운터",
+    "wrestling": "레슬링 압박",
+    "submission": "서브미션"
+  },
+  "opponents": [
+    {
+      "name": "박민재",
+      "style": "striker",
+      "tag": "빠른 펀치 · 지상전이 약점"
+    },
+    {
+      "name": "한준호",
+      "style": "wrestler",
+      "tag": "테이크다운 압박 · 타격이 약점"
+    },
+    {
+      "name": "서도윤",
+      "style": "grappler",
+      "tag": "서브미션 위협 · 레슬링이 약점"
+    }
+  ]
+}
