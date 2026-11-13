@@ -1,5 +1,5 @@
 {
-	"checks": 471,
+	"checks": 540,
 	"failures": [],
 	"rendered": true,
 	"screenshots": [
@@ -16,6 +16,12 @@
 		"04_fight",
 		"05_result",
 		"06_records",
+		"14_item_recovery",
+		"15_shop",
+		"16_relationships",
+		"17_technique_event",
+		"18_skills",
+		"19_achievements",
 		"07_tall_phone"
 	]
 }

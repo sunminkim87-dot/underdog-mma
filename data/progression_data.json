@@ -1,0 +1,557 @@
+{
+  "items": {
+    "sports_drink": {
+      "name": "스포츠 음료",
+      "kind": "consumable",
+      "price": 4,
+      "recovery": 12,
+      "icon": 18,
+      "description": "피로 최대 12 회복 · 남은 피로만큼 적용"
+    },
+    "recovery_meal": {
+      "name": "회복 도시락",
+      "kind": "consumable",
+      "price": 6,
+      "recovery": 20,
+      "icon": 19,
+      "description": "피로 최대 20 회복 · 월 소모품 사용 3회"
+    },
+    "training_gloves": {
+      "name": "훈련 글러브",
+      "kind": "equipment",
+      "slot": "gloves",
+      "price": 16,
+      "combat": {
+        "striking": 3
+      },
+      "icon": 20,
+      "description": "착용 시 경기 타격 +3"
+    },
+    "mma_trunks": {
+      "name": "MMA 트렁크",
+      "kind": "equipment",
+      "slot": "trunks",
+      "price": 12,
+      "combat": {
+        "mental": 2
+      },
+      "icon": 21,
+      "description": "착용 시 경기 멘탈 +2"
+    },
+    "mouthguard": {
+      "name": "보호 마우스피스",
+      "kind": "equipment",
+      "slot": "mouthguard",
+      "price": 14,
+      "combat": {
+        "endurance": 2
+      },
+      "icon": 22,
+      "description": "착용 시 경기 지구력 +2"
+    },
+    "running_shoes": {
+      "name": "러닝화",
+      "kind": "equipment",
+      "slot": "shoes",
+      "price": 18,
+      "combat": {
+        "speed": 2
+      },
+      "icon": 23,
+      "description": "착용 시 경기 민첩 +2"
+    }
+  },
+  "npcs": {
+    "jisoo": {
+      "name": "이지수",
+      "age": 22,
+      "job": "대학생 · 러닝 동호회",
+      "portrait": 0,
+      "color": "#ff9b89",
+      "description": "밝고 꾸준한 러너. 서로의 작은 성장을 응원한다."
+    },
+    "seoyeon": {
+      "name": "한서연",
+      "age": 25,
+      "job": "물리치료사",
+      "portrait": 1,
+      "color": "#8bdfbd",
+      "description": "차분하고 현실적이다. 무리하지 않는 꾸준함을 소중히 여긴다."
+    },
+    "harin": {
+      "name": "윤하린",
+      "age": 24,
+      "job": "스포츠 사진가",
+      "portrait": 2,
+      "color": "#c4a1ff",
+      "description": "유쾌하고 독립적이다. 결과보다 도전하는 순간을 좋아한다."
+    }
+  },
+  "skills": {
+    "tech_boxing": {
+      "name": "정확한 원투",
+      "action": "boxing",
+      "requires_count": 3,
+      "bouts": 1,
+      "combat": {
+        "striking": 4,
+        "speed": 2
+      },
+      "icon": 0,
+      "description": "해당 종목 훈련 3회와 공식 경기 1회 후 감독 이벤트로 습득"
+    },
+    "tech_kickboxing": {
+      "name": "로킥 연계",
+      "action": "kickboxing",
+      "requires_count": 3,
+      "bouts": 1,
+      "combat": {
+        "striking": 4,
+        "power": 2
+      },
+      "icon": 1,
+      "description": "해당 종목 훈련 3회와 공식 경기 1회 후 감독 이벤트로 습득"
+    },
+    "tech_wrestling": {
+      "name": "싱글렉 전환",
+      "action": "wrestling",
+      "requires_count": 3,
+      "bouts": 1,
+      "combat": {
+        "wrestling": 4,
+        "endurance": 2
+      },
+      "icon": 2,
+      "description": "해당 종목 훈련 3회와 공식 경기 1회 후 감독 이벤트로 습득"
+    },
+    "tech_judo": {
+      "name": "클린치 허리후리기",
+      "action": "judo",
+      "requires_count": 3,
+      "bouts": 1,
+      "combat": {
+        "wrestling": 3,
+        "power": 2
+      },
+      "icon": 3,
+      "description": "해당 종목 훈련 3회와 공식 경기 1회 후 감독 이벤트로 습득"
+    },
+    "tech_bjj": {
+      "name": "프레임 이스케이프",
+      "action": "bjj",
+      "requires_count": 3,
+      "bouts": 1,
+      "combat": {
+        "grappling": 4,
+        "speed": 2
+      },
+      "icon": 4,
+      "description": "해당 종목 훈련 3회와 공식 경기 1회 후 감독 이벤트로 습득"
+    }
+  },
+  "events": {
+    "coach_offer": {
+      "title": "감독의 제안",
+      "text": "강태오 감독이 말을 건넸다. “경기도 해 봤고, 기본기도 좋아졌구나. 초보 회원을 지도해 보겠니?”",
+      "conditions": {
+        "month": 6,
+        "bouts": 2,
+        "wins": 1
+      },
+      "choices": [
+        {
+          "id": "accept",
+          "text": "기본기부터 성실하게 알려드릴게요.",
+          "effects": {
+            "unlock": "coach_job"
+          }
+        },
+        {
+          "id": "later",
+          "text": "선수 훈련에 조금 더 집중할게요.",
+          "effects": {
+            "defer": true
+          }
+        }
+      ],
+      "npc": ""
+    },
+    "learn_boxing": {
+      "title": "특별 기술 · 정확한 원투",
+      "text": "강태오 감독이 훈련을 지켜봤다. “이제 기본기를 실전 기술로 연결해 보자. 오늘은 정확한 원투를 익힐 차례다.”",
+      "conditions": {
+        "action_count": {
+          "boxing": 3
+        },
+        "bouts": 1
+      },
+      "choices": [
+        {
+          "id": "learn",
+          "text": "집중해서 기술을 배운다. (6만원 · 피로 +4)",
+          "effects": {
+            "skill": "tech_boxing",
+            "cost": 6,
+            "fatigue": 4
+          }
+        },
+        {
+          "id": "later",
+          "text": "지금은 쉬고 다음에 배우겠습니다.",
+          "effects": {
+            "defer": true
+          }
+        }
+      ],
+      "npc": ""
+    },
+    "learn_kickboxing": {
+      "title": "특별 기술 · 로킥 연계",
+      "text": "강태오 감독이 훈련을 지켜봤다. “이제 기본기를 실전 기술로 연결해 보자. 오늘은 로킥 연계를 익힐 차례다.”",
+      "conditions": {
+        "action_count": {
+          "kickboxing": 3
+        },
+        "bouts": 1
+      },
+      "choices": [
+        {
+          "id": "learn",
+          "text": "집중해서 기술을 배운다. (6만원 · 피로 +4)",
+          "effects": {
+            "skill": "tech_kickboxing",
+            "cost": 6,
+            "fatigue": 4
+          }
+        },
+        {
+          "id": "later",
+          "text": "지금은 쉬고 다음에 배우겠습니다.",
+          "effects": {
+            "defer": true
+          }
+        }
+      ],
+      "npc": ""
+    },
+    "learn_wrestling": {
+      "title": "특별 기술 · 싱글렉 전환",
+      "text": "강태오 감독이 훈련을 지켜봤다. “이제 기본기를 실전 기술로 연결해 보자. 오늘은 싱글렉 전환를 익힐 차례다.”",
+      "conditions": {
+        "action_count": {
+          "wrestling": 3
+        },
+        "bouts": 1
+      },
+      "choices": [
+        {
+          "id": "learn",
+          "text": "집중해서 기술을 배운다. (6만원 · 피로 +4)",
+          "effects": {
+            "skill": "tech_wrestling",
+            "cost": 6,
+            "fatigue": 4
+          }
+        },
+        {
+          "id": "later",
+          "text": "지금은 쉬고 다음에 배우겠습니다.",
+          "effects": {
+            "defer": true
+          }
+        }
+      ],
+      "npc": ""
+    },
+    "learn_judo": {
+      "title": "특별 기술 · 클린치 허리후리기",
+      "text": "강태오 감독이 훈련을 지켜봤다. “이제 기본기를 실전 기술로 연결해 보자. 오늘은 클린치 허리후리기를 익힐 차례다.”",
+      "conditions": {
+        "action_count": {
+          "judo": 3
+        },
+        "bouts": 1
+      },
+      "choices": [
+        {
+          "id": "learn",
+          "text": "집중해서 기술을 배운다. (6만원 · 피로 +4)",
+          "effects": {
+            "skill": "tech_judo",
+            "cost": 6,
+            "fatigue": 4
+          }
+        },
+        {
+          "id": "later",
+          "text": "지금은 쉬고 다음에 배우겠습니다.",
+          "effects": {
+            "defer": true
+          }
+        }
+      ],
+      "npc": ""
+    },
+    "learn_bjj": {
+      "title": "특별 기술 · 프레임 이스케이프",
+      "text": "강태오 감독이 훈련을 지켜봤다. “이제 기본기를 실전 기술로 연결해 보자. 오늘은 프레임 이스케이프를 익힐 차례다.”",
+      "conditions": {
+        "action_count": {
+          "bjj": 3
+        },
+        "bouts": 1
+      },
+      "choices": [
+        {
+          "id": "learn",
+          "text": "집중해서 기술을 배운다. (6만원 · 피로 +4)",
+          "effects": {
+            "skill": "tech_bjj",
+            "cost": 6,
+            "fatigue": 4
+          }
+        },
+        {
+          "id": "later",
+          "text": "지금은 쉬고 다음에 배우겠습니다.",
+          "effects": {
+            "defer": true
+          }
+        }
+      ],
+      "npc": ""
+    },
+    "work_contact": {
+      "title": "체육관에 찾아온 행사 담당자",
+      "text": "지역 스포츠 행사에서 선수 출신 보조 진행자를 찾고 있다. 새로운 알바 기회다.",
+      "conditions": {
+        "month": 3
+      },
+      "choices": [
+        {
+          "id": "accept",
+          "text": "행사 진행 보조에 지원한다.",
+          "effects": {
+            "unlock": "event_work"
+          }
+        },
+        {
+          "id": "later",
+          "text": "이번에는 기존 알바를 계속한다.",
+          "effects": {
+            "defer": true
+          }
+        }
+      ],
+      "npc": ""
+    },
+    "meet_jisoo": {
+      "title": "새로운 인연 · 이지수",
+      "text": "트랙에서 자주 마주치던 러너가 먼저 인사했다. “안녕하세요. 저도 요즘 꾸준히 달리고 있어요.”",
+      "conditions": {
+        "month": 1
+      },
+      "choices": [
+        {
+          "id": "hello",
+          "text": "반갑게 인사하고 이야기를 나눈다.",
+          "effects": {
+            "meet": "jisoo",
+            "affinity": 5
+          }
+        },
+        {
+          "id": "later",
+          "text": "오늘은 일정이 있어서 다음에 인사한다.",
+          "effects": {
+            "defer": true
+          }
+        }
+      ],
+      "npc": "jisoo"
+    },
+    "dating_jisoo": {
+      "title": "조금 더 가까운 사이",
+      "text": "이지수가 조심스럽게 웃었다. “다음에는 친구로 만나는 것 말고, 데이트로 만나 볼래요?”",
+      "conditions": {
+        "affinity": {
+          "jisoo": 30
+        },
+        "no_partner": true
+      },
+      "choices": [
+        {
+          "id": "date",
+          "text": "나도 좋아요. 서로의 시간을 존중하며 만나 봐요.",
+          "effects": {
+            "partner": "jisoo"
+          }
+        },
+        {
+          "id": "friends",
+          "text": "좋은 친구로 계속 지내고 싶어요.",
+          "effects": {
+            "friend_only": "jisoo"
+          }
+        }
+      ],
+      "npc": "jisoo"
+    },
+    "meet_seoyeon": {
+      "title": "새로운 인연 · 한서연",
+      "text": "체육관 회복 강좌에서 치료사와 이야기를 나눴다. “훈련과 회복은 같이 가야 오래 할 수 있어요.”",
+      "conditions": {
+        "month": 3
+      },
+      "choices": [
+        {
+          "id": "hello",
+          "text": "반갑게 인사하고 이야기를 나눈다.",
+          "effects": {
+            "meet": "seoyeon",
+            "affinity": 5
+          }
+        },
+        {
+          "id": "later",
+          "text": "오늘은 일정이 있어서 다음에 인사한다.",
+          "effects": {
+            "defer": true
+          }
+        }
+      ],
+      "npc": "seoyeon"
+    },
+    "dating_seoyeon": {
+      "title": "조금 더 가까운 사이",
+      "text": "한서연이 조심스럽게 웃었다. “다음에는 친구로 만나는 것 말고, 데이트로 만나 볼래요?”",
+      "conditions": {
+        "affinity": {
+          "seoyeon": 30
+        },
+        "no_partner": true
+      },
+      "choices": [
+        {
+          "id": "date",
+          "text": "나도 좋아요. 서로의 시간을 존중하며 만나 봐요.",
+          "effects": {
+            "partner": "seoyeon"
+          }
+        },
+        {
+          "id": "friends",
+          "text": "좋은 친구로 계속 지내고 싶어요.",
+          "effects": {
+            "friend_only": "seoyeon"
+          }
+        }
+      ],
+      "npc": "seoyeon"
+    },
+    "meet_harin": {
+      "title": "새로운 인연 · 윤하린",
+      "text": "지역 경기 사진을 찍던 사진가가 사진 한 장을 건넸다. “결과와 상관없이, 이 순간은 꽤 멋졌어요.”",
+      "conditions": {
+        "month": 5
+      },
+      "choices": [
+        {
+          "id": "hello",
+          "text": "반갑게 인사하고 이야기를 나눈다.",
+          "effects": {
+            "meet": "harin",
+            "affinity": 5
+          }
+        },
+        {
+          "id": "later",
+          "text": "오늘은 일정이 있어서 다음에 인사한다.",
+          "effects": {
+            "defer": true
+          }
+        }
+      ],
+      "npc": "harin"
+    },
+    "dating_harin": {
+      "title": "조금 더 가까운 사이",
+      "text": "윤하린이 조심스럽게 웃었다. “다음에는 친구로 만나는 것 말고, 데이트로 만나 볼래요?”",
+      "conditions": {
+        "affinity": {
+          "harin": 30
+        },
+        "no_partner": true
+      },
+      "choices": [
+        {
+          "id": "date",
+          "text": "나도 좋아요. 서로의 시간을 존중하며 만나 봐요.",
+          "effects": {
+            "partner": "harin"
+          }
+        },
+        {
+          "id": "friends",
+          "text": "좋은 친구로 계속 지내고 싶어요.",
+          "effects": {
+            "friend_only": "harin"
+          }
+        }
+      ],
+      "npc": "harin"
+    }
+  },
+  "achievements": {
+    "first_month": {
+      "name": "첫 달의 땀",
+      "description": "선수 생활 한 달 완료",
+      "condition": {
+        "month": 1
+      },
+      "reward_item": "sports_drink"
+    },
+    "first_win": {
+      "name": "첫 승의 주인공",
+      "description": "공식 MMA 첫 승",
+      "condition": {
+        "wins": 1
+      },
+      "reward_item": "recovery_meal"
+    },
+    "hard_worker": {
+      "name": "링 밖의 노력",
+      "description": "알바 8회 수행",
+      "condition": {
+        "job_count": 8
+      },
+      "reward_item": "sports_drink"
+    },
+    "first_technique": {
+      "name": "나만의 한 수",
+      "description": "이벤트 특별 기술 습득",
+      "condition": {
+        "skills": 1
+      },
+      "reward_item": "recovery_meal"
+    },
+    "first_friend": {
+      "name": "혼자가 아닌 길",
+      "description": "첫 인연과 친구 되기",
+      "condition": {
+        "friends": 1
+      },
+      "reward_item": "sports_drink"
+    },
+    "six_months": {
+      "name": "꾸준함의 증명",
+      "description": "선수 생활 6개월",
+      "condition": {
+        "month": 6
+      },
+      "reward_item": "recovery_meal"
+    }
+  },
+  "consumables_per_month": 3,
+  "combat_bonus_cap": 10
+}

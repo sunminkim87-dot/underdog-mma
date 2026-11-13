@@ -23,6 +23,7 @@ static func valid(state: Variant) -> bool:
 	for key in ["age", "months", "cash", "wins", "losses", "draws", "next_fight_month", "appearance"]:
 		if not whole(a.get(key),0,1000000000): return false
 	if a.appearance > 2 or a.age != 18 + int(a.months) / 12: return false
+	if not Progression.valid_extension(a): return false
 	if not numeric(a.get("fatigue"),0,100) or not a.get("stats") is Dictionary: return false
 	for key in GameCatalog.data().stat_names:
 		if not numeric(a.stats.get(key),1,100): return false
@@ -58,18 +59,23 @@ static func valid(state: Variant) -> bool:
 			if not report.stat_gains is Dictionary: return false
 			for key in report.stat_gains:
 				if not key in GameCatalog.data().stat_names or not numeric(report.stat_gains[key],0,100): return false
+		if report.has("recovery_total") != report.has("natural_recovery"): return false
 		if report.has("timeline"):
 			if not report.timeline is Array or report.timeline.size() != 16: return false
 			for event in report.timeline:
 				if not event is Dictionary: return false
 				for key in ["action_id","scene_id","name","slot"]:
 					if not event.get(key) is String: return false
-				if not whole(event.get("week"),1,4): return false
+				if not whole(event.get("week"),1,4) or not event.slot in ["main","aux","life","recovery"]: return false
 				for key in ["fatigue_before","fatigue_after","recovered","potential_recovery"]:
 					if not numeric(event.get(key),0,100): return false
 				for key in ["cash_before","cash_after"]:
 					if not whole(event.get(key),0,1000000000): return false
 				if not event.get("gains") is Dictionary or not event.get("skipped") is bool: return false
+				if event.has("notes"):
+					if not event.notes is Array:return false
+					for note in event.notes:
+						if not note is String:return false
 				for key in event.gains:
 					if not key in GameCatalog.data().stat_names or not numeric(event.gains[key],0,100): return false
 	if not whole(state.account_legacy.get("lp"),0,1000000000): return false
@@ -83,6 +89,8 @@ static func valid(state: Variant) -> bool:
 		for key in ["months","age","wins","losses","draws","lp"]:
 			if not whole(entry.get(key),0,1000000000): return false
 	if a.has("retired") and not a.retired is bool: return false
+	for id in state.achievements:
+		if not id is String or not id in GameCatalog.extra().achievements:return false
 	var settings: Dictionary = state.settings
 	if not settings.get("strategy") is String or not settings.strategy in GameCatalog.data().strategy_names: return false
 	if not settings.get("fixed_seed") is bool or not whole(settings.get("seed"),0,2147483647): return false
@@ -94,6 +102,8 @@ static func read_one(path: String) -> Dictionary:
 	var parser = JSON.new()
 	if parser.parse(FileAccess.get_file_as_string(path)) != OK: return {}
 	var raw = parser.data
+	if not valid(raw): return {}
+	Progression.initialize(raw)
 	return raw if valid(raw) else {}
 
 static func load_game(path: String = DEFAULT_PATH) -> Dictionary:

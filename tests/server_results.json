@@ -1,1 +1,6 @@
-{"tests":8,"failures":0,"billing_provider":"unit_test_only","production_server_deployed":false}
+{
+  "tests": 14,
+  "failures": 0,
+  "billing_provider": "unit_test_only",
+  "production_server_deployed": false
+}

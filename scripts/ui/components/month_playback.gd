@@ -21,6 +21,7 @@ var progress_bar: ProgressBar
 var week_labels: Array = []
 var source_appearance: int = 0
 var fast_button: Button
+var npc_portrait: NpcPortrait
 
 func setup(owner_ui: Control, month_report: Dictionary, color: int) -> void:
 	ui = owner_ui
@@ -49,6 +50,12 @@ func setup(owner_ui: Control, month_report: Dictionary, color: int) -> void:
 	world = ActivityScene.new()
 	world.custom_minimum_size.y = 270
 	root.add_child(world)
+	npc_portrait=NpcPortrait.new()
+	npc_portrait.custom_minimum_size=Vector2(95,95)
+	npc_portrait.size=Vector2(95,130)
+	npc_portrait.position=Vector2(8,8)
+	npc_portrait.visible=false
+	world.add_child(npc_portrait)
 	slot_label = ui.label("",15,ui.MUTED)
 	root.add_child(slot_label)
 	title_label = ui.label("",28)
@@ -84,17 +91,24 @@ func advance() -> void:
 		return
 	var event: Dictionary = timeline[index]
 	world.set_action(event.scene_id,source_appearance)
+	npc_portrait.visible=false
+	if event.action_id in ["social","date"]:
+		var npc: String=ui.state.current_athlete.partner_id if event.action_id=="date" else ui.state.current_athlete.focus_npc
+		if npc in GameCatalog.extra().npcs:
+			npc_portrait.npc_id=npc
+			npc_portrait.visible=true
+			npc_portrait.queue_redraw()
 	title_label.text = event.name
 	slot_label.text = "%d주차  ·  %s  ·  %d / %d" % [event.week,{"main":"주요 훈련","aux":"보조 훈련","life":"생활","recovery":"주간 마무리"}[event.slot],index+1,timeline.size()]
 	for i in 4: week_labels[i].add_theme_color_override("font_color",ui.LIME if i+1 == event.week else ui.MUTED)
 	var diff: float = float(event.fatigue_after)-float(event.fatigue_before)
 	if event.potential_recovery > 0:
-		effect_label.text = "회복 +%.2f  ·  피로 %.2f → %.2f" % [event.recovered,event.fatigue_before,event.fatigue_after]
+		effect_label.text = "체력 +%.2f  ·  %.2f → %.2f" % [event.recovered,100-event.fatigue_before,100-event.fatigue_after]
 		effect_label.add_theme_color_override("font_color",ui.GREEN)
 	else:
-		effect_label.text = "피로 +%.2f  ·  %.2f → %.2f" % [diff,event.fatigue_before,event.fatigue_after]
+		effect_label.text = "체력 -%.2f  ·  %.2f → %.2f" % [diff,100-event.fatigue_before,100-event.fatigue_after]
 		effect_label.add_theme_color_override("font_color",ui.ORANGE)
-	var effects: Array = []
+	var effects: Array = event.get("notes",[]).duplicate()
 	for stat in event.gains: effects.append("%s +%.1f" % [GameCatalog.data().stat_names[stat],event.gains[stat]])
 	var cash_delta: int = int(event.cash_after-event.cash_before)
 	if cash_delta != 0: effects.append("현금 %+d만원" % cash_delta)
@@ -110,7 +124,7 @@ func _process(delta: float) -> void:
 	var shown: float = lerpf(event.fatigue_before,event.fatigue_after,ratio)
 	energy_bar.value = 100-shown
 	fatigue_bar.value = shown
-	energy_text.text = "활력  %.1f / 100" % (100-shown)
+	energy_text.text = "체력  %.1f / 100" % (100-shown)
 	fatigue_text.text = "피로  %.1f / 100" % shown
 	progress_bar.value = 100*(index+ratio)/maxi(timeline.size(),1)
 	if ratio >= 1: advance()

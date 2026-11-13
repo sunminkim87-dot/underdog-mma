@@ -9,6 +9,10 @@ var paused: bool = false
 var actor_texture: Texture2D
 var actors: Array = []
 var actors_used: int = 0
+var moves_texture: Texture2D
+var moves_actor: Sprite2D
+var work_atlas: Texture2D
+var icon_atlas: Texture2D
 var accent: Color = Color("ffc16c")
 const INK = Color("202437")
 const SKIN = Color("e4aa7a")
@@ -22,6 +26,17 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	atlas = load("res://assets/art/life_atlas.png")
 	actor_texture = load("res://assets/art/athlete_sheet.png")
+	moves_texture=load("res://assets/art/combat_moves_v03.png")
+	icon_atlas=load("res://assets/art/action_icons_v03.png")
+	if ResourceLoader.exists("res://assets/art/work_atlas_v03.png"):work_atlas=load("res://assets/art/work_atlas_v03.png")
+	moves_actor=Sprite2D.new()
+	moves_actor.texture=moves_texture
+	moves_actor.region_enabled=true
+	moves_actor.texture_filter=CanvasItem.TEXTURE_FILTER_NEAREST
+	var move_palette=ShaderMaterial.new()
+	move_palette.shader=load("res://assets/art/sprite_palette.gdshader")
+	moves_actor.material=move_palette
+	add_child(moves_actor)
 	if actor_texture != null:
 		for i in 2:
 			var sprite = Sprite2D.new()
@@ -46,13 +61,17 @@ func _process(delta: float) -> void:
 		queue_redraw()
 
 func scene_index() -> int:
-	if action_id == "job": return 1
+	if action_id == "job":return 1
+	if action_id in ["cafe","date"]:return 4
+	if action_id == "warehouse":return 5
+	if action_id == "event_work":return 6
+	if action_id == "coach_job":return 7
 	if action_id in ["rest","life_rest","mental","natural_recovery"]: return 2
-	if action_id in ["cardio","agility","delivery"]: return 3
+	if action_id in ["cardio","agility","delivery","social"]: return 3
 	return 0
 
 func location_name() -> String:
-	return ["언더독 MMA 체육관","동네 편의점 · 야간 알바","선수 숙소 · 휴식","강변 트랙 · 아침"][scene_index()]
+	return ["언더독 MMA 체육관","동네 편의점 · 야간 알바","선수 숙소 · 휴식","강변 트랙 · 아침","동네 카페","물류 창고","지역 스포츠 행사","초보 회원 지도"][scene_index()]
 
 func rect_at(pos: Vector2, dimensions: Vector2, color: Color) -> void:
 	draw_rect(Rect2(pos.round(),dimensions),color)
@@ -74,7 +93,9 @@ func person(pos: Vector2, pose: String, phase: float, mirrored: bool = false, ot
 		var cell = actor_texture.get_size()/4
 		var column: int = int(floor(clock*7))%4
 		var row_index: int = 0
-		if pose == "run": row_index = 1
+		if pose in ["run","casual","carry"]:
+			row_index = 1
+			if pose == "casual":column=0
 		elif pose == "lift": row_index = 2
 		elif pose == "cashier":
 			row_index = 3
@@ -182,18 +203,31 @@ func draw_ellipse_shadow(pos: Vector2, radius: Vector2) -> void:
 func _draw() -> void:
 	if size.x < 1 or size.y < 1: return
 	actors_used = 0
-	for actor in actors: actor.visible = false
+	for actor in actors:actor.visible=false
+	if moves_actor!=null:moves_actor.visible=false
 	var virtual = Vector2(384,192)
 	var scale_value = size / virtual
 	if atlas != null:
-		var dims = atlas.get_size()/2
-		var idx = scene_index()
-		var region = Rect2(Vector2((idx%2)*dims.x,int(idx/2)*dims.y),dims)
-		draw_texture_rect_region(atlas,Rect2(Vector2.ZERO,size),region)
+		var idx=scene_index()
+		var background: Texture2D=work_atlas if idx>=4 and work_atlas!=null else atlas
+		var dims=background.get_size()/2
+		var panel_index=idx%4
+		var region=Rect2(Vector2((panel_index%2)*dims.x,int(panel_index/2)*dims.y),dims)
+		draw_texture_rect_region(background,Rect2(Vector2.ZERO,size),region)
 	else: draw_rect(Rect2(Vector2.ZERO,size),Color("304c60"))
 	# Characters are drawn into a 384x192 pixel stage, independently of background detail.
 	var phase: float = floorf(clock*9)/9.0*7
 	draw_set_transform(Vector2.ZERO,0,scale_value)
+	if action_id in ["judo","wrestling","bjj","kickboxing"] and moves_texture!=null:
+		var row_index: int={"judo":0,"wrestling":1,"bjj":2,"kickboxing":3}[action_id]
+		var cell=moves_texture.get_size()/4
+		moves_actor.region_rect=Rect2(Vector2(int(floor(clock*3))%4*cell.x,row_index*cell.y),cell)
+		moves_actor.position=Vector2(282 if action_id=="kickboxing" else 220,129)*scale_value
+		moves_actor.scale=Vector2(168,84)/cell*scale_value
+		moves_actor.visible=true
+		moves_actor.material.set_shader_parameter("trunks_color",[Color("f06d5e"),Color("79bfff"),Color("c4a1ff")][appearance])
+		draw_set_transform(Vector2.ZERO)
+		return
 	if action_id in ["rest","life_rest","natural_recovery"]:
 		person(Vector2(307,138),"sleep",phase)
 		draw_set_transform(Vector2.ZERO,0,scale_value)
@@ -206,6 +240,18 @@ func _draw() -> void:
 	elif action_id == "mental": person(Vector2(171,170),"sit",phase)
 	elif action_id == "job":
 		person(Vector2(281,158),"cashier",phase)
+	elif action_id in ["cafe","warehouse","event_work","coach_job","cleaning","social","date"]:
+		if action_id=="coach_job":
+			person(Vector2(159,166),"guard",phase)
+			draw_set_transform(Vector2.ZERO,0,scale_value)
+			person(Vector2(284,166),"punch",phase,true,true)
+		elif action_id=="cafe":person(Vector2(274,165),"cashier",phase)
+		else:person(Vector2(190,168),"carry" if action_id=="warehouse" else ("cashier" if action_id=="cleaning" else "casual"),phase)
+		draw_set_transform(Vector2.ZERO,0,scale_value)
+		if action_id in ["warehouse","cleaning","event_work","coach_job"] and icon_atlas!=null:
+			var index: int={"warehouse":14,"cleaning":13,"event_work":16,"coach_job":17}[action_id]
+			var dims=icon_atlas.get_size()/Vector2(6,4)
+			draw_texture_rect_region(icon_atlas,Rect2(211,117,38,38),Rect2(Vector2(index%6,int(index/6))*dims,dims))
 	elif action_id == "delivery":
 		person(Vector2(182,146),"run",phase)
 		for x in [158,210]:

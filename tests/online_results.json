@@ -1,6 +1,6 @@
 {
 	"billing_connected": false,
-	"checks": 12,
+	"checks": 16,
 	"failures": [],
 	"real_http": true
 }

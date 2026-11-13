@@ -17,6 +17,15 @@ class ServerTests(unittest.TestCase):
     def tearDown(self): self.tmp.cleanup()
     def snapshot(self): return self.client.get('/state',headers=self.headers).json()
     def mutate(self,op,payload=None,revision=None,key=None):
+        if op in ('month','fight','schedule'):
+            snapshot=self.snapshot()
+            pending=(snapshot.get('state') or {}).get('current_athlete',{}).get('pending_event','')
+            if pending:
+                content=json.loads((Path(__file__).parents[1]/'data/progression_data.json').read_text())
+                option=next(c for c in content['events'][pending]['choices'] if c['effects'].get('cost',0)==0)
+                self.request_number+=1
+                resolved=self.client.post('/action/event',json={'revision':snapshot['revision'],'request_id':'resolve_event_'+str(self.request_number).zfill(8),'event':pending,'choice':option['id']},headers=self.headers)
+                self.assertEqual(resolved.status_code,200,resolved.text)
         self.request_number+=1
         body=dict(payload or {},revision=self.snapshot()['revision'] if revision is None else revision,request_id=key or ('request_'+str(self.request_number).zfill(12)))
         return self.client.post('/action/'+op,json=body,headers=self.headers)
@@ -96,5 +105,71 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(response.status_code,409)
         self.assertEqual(self.snapshot()['state']['account_legacy']['lp'],0)
         self.assertEqual(self.mutate('upgrade',{'facility':'boxing','lp':100}).status_code,422)
+
+    def test_approved_bases_and_canonical_stats(self):
+        response=self.mutate('new',{'name':'유도 선수','style':'striker','base':'judo','appearance':0})
+        self.assertEqual(response.status_code,200,response.text)
+        athlete=response.json()['state']['current_athlete']
+        self.assertEqual(athlete['background_base'],'judo')
+        self.assertEqual(athlete['style'],'wrestler')
+        self.assertEqual(sum(athlete['stats'].values()),184)
+        self.assertEqual(athlete['stats']['power'],36)
+    def test_real_inventory_and_equipment_without_premium_cash(self):
+        self.new()
+        before=self.snapshot()['state']['current_athlete']['cash']
+        bought=self.mutate('buy',{'item':'training_gloves'})
+        self.assertEqual(bought.status_code,200,bought.text)
+        athlete=bought.json()['state']['current_athlete']
+        self.assertEqual(athlete['cash'],before-16)
+        self.assertEqual(athlete['equipment']['gloves'],'training_gloves')
+        self.assertEqual(self.snapshot()['wallet']['cash'],0)
+        self.assertEqual(self.mutate('buy',{'item':'training_gloves'}).status_code,409)
+        self.assertEqual(self.mutate('buy',{'item':'mouthguard','price':0}).status_code,422)
+        self.assertEqual(self.mutate('equip',{'item':'mouthguard'}).status_code,409)
+    def test_event_choices_are_server_owned(self):
+        self.new()
+        self.assertEqual(self.mutate('event',{'event':'coach_offer','choice':'accept'}).status_code,409)
+        progressed=self.mutate('month')
+        self.assertEqual(progressed.status_code,200)
+        snapshot=self.snapshot()
+        self.assertEqual(snapshot['state']['current_athlete']['pending_event'],'meet_jisoo')
+        choice=self.mutate('event',{'event':'meet_jisoo','choice':'hello'})
+        self.assertEqual(choice.status_code,200,choice.text)
+        relation=choice.json()['state']['current_athlete']['relationships']['jisoo']
+        self.assertEqual(relation['affinity'],5)
+        self.assertEqual(self.mutate('event',{'event':'meet_jisoo','choice':'hello'}).status_code,409)
+        focused=self.mutate('focus',{'npc':'jisoo'})
+        self.assertEqual(focused.json()['state']['current_athlete']['relationships']['jisoo']['affinity'],5)
+        self.assertEqual(self.mutate('focus',{'npc':'harin'}).status_code,409)
+        self.assertEqual(self.mutate('focus',{'npc':'jisoo','affinity':100}).status_code,422)
+    def test_consumable_retry_decrements_exactly_once(self):
+        self.new()
+        self.mutate('month')
+        snapshot=self.snapshot()
+        self.assertGreater(snapshot['state']['current_athlete']['fatigue'],0)
+        before=snapshot['state']['current_athlete']['inventory']['sports_drink']
+        first=self.mutate('use_item',{'item':'sports_drink'},revision=snapshot['revision'],key='retry_consumable_001')
+        second=self.mutate('use_item',{'item':'sports_drink'},revision=snapshot['revision'],key='retry_consumable_001')
+        self.assertEqual(first.status_code,200,first.text)
+        self.assertEqual(first.json(),second.json())
+        athlete=self.snapshot()['state']['current_athlete']
+        self.assertEqual(athlete['inventory']['sports_drink'],before-1)
+        self.assertEqual(athlete['consumables_used'],1)
+        self.assertEqual(athlete['fatigue'],0)
+    def test_jobs_cannot_unlock_from_client_payload(self):
+        self.new()
+        state=self.snapshot()['state']
+        schedule=state['schedule']
+        schedule[0]['life']='coach_job'
+        self.assertEqual(self.mutate('schedule',{'schedule':schedule}).status_code,409)
+        self.assertEqual(self.mutate('schedule',{'schedule':schedule,'unlocks':['coach_job']}).status_code,422)
+    def test_purchase_concurrency_charges_only_once(self):
+        self.new()
+        def purchase(i):
+            return self.client.post('/action/buy',json={'revision':1,'request_id':'parallel_purchase_'+str(i),'item':'sports_drink'},headers=self.headers).status_code
+        with ThreadPoolExecutor(max_workers=2) as pool:statuses=list(pool.map(purchase,[1,2]))
+        self.assertEqual(sorted(statuses),[200,409])
+        self.assertEqual(self.snapshot()['state']['current_athlete']['cash'],96)
+        self.assertEqual(self.snapshot()['state']['current_athlete']['inventory']['sports_drink'],1)
 
 if __name__=='__main__':unittest.main(verbosity=2)

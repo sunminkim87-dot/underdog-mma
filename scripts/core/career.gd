@@ -5,7 +5,7 @@ static func create(name: String, style: String, appearance: int = 0) -> Dictiona
 	var d = GameCatalog.data()
 	var stats: Dictionary = {}
 	for k in d.stat_names: stats[k] = float(d.base_stat) + float(d.style_bonus[style].get(k, 0))
-	return {"save_version":1, "current_athlete":{
+	var result = {"save_version":1, "current_athlete":{
 		"athlete_id":Crypto.new().generate_random_bytes(16).hex_encode(),
 		"name":name.strip_edges().left(16), "nationality":"대한민국", "appearance":appearance,
 		"style":style, "age":18, "months":0, "stats":stats, "fatigue":0.0,
@@ -14,6 +14,8 @@ static func create(name: String, style: String, appearance: int = 0) -> Dictiona
 		"account_legacy":{"lp":0}, "gym_facilities":{}, "hall_of_fame":[],
 		"coaches":[], "achievements":[], "settings":{"strategy":"balanced", "fixed_seed":false, "seed":2026},
 		"schedule":GameCatalog.default_schedule(), "saved_preset":GameCatalog.default_schedule()}
+	Progression.initialize(result)
+	return result
 
 static func condition(athlete: Dictionary) -> int:
 	return roundi(100.0 - float(athlete.fatigue) * 0.65)
@@ -37,9 +39,13 @@ static func validate_schedule(schedule: Array) -> bool:
 # Pure simulation on a deep copy: previews and insufficient-funds failures do not mutate saves.
 static func month(state: Dictionary) -> Dictionary:
 	if state.current_athlete.get("retired",false): return {"ok":false,"error":"은퇴한 선수입니다. 새 선수를 시작해 주세요."}
+	if not Progression.pending_reason(state).is_empty(): return {"ok":false,"error":Progression.pending_reason(state),"event_pending":true}
 	if fight_due(state): return {"ok":false,"error":"오늘은 경기일입니다. 경기 탭에서 예정 경기를 먼저 진행해 주세요.","fight_due":true}
 	if not validate_schedule(state.schedule): return {"ok":false, "error":"일정 데이터가 올바르지 않습니다."}
+	var availability = Progression.schedule_reason(state,state.schedule)
+	if not availability.is_empty(): return {"ok":false,"error":availability}
 	var next = state.duplicate(true)
+	Progression.initialize(next)
 	var a: Dictionary = next.current_athlete
 	var d = GameCatalog.data()
 	var start_cash: int = a.cash
@@ -73,6 +79,7 @@ static func month(state: Dictionary) -> Dictionary:
 			a.fatigue = clampf(float(a.fatigue) + float(act.fatigue) * scale, 0, 100)
 			notes.append(str(act.name))
 			a.fatigue = snappedf(a.fatigue, 0.01)
+			var action_notes = Progression.on_action(next,action_id)
 			var action_gains: Dictionary = {}
 			for stat in a.stats:
 				var change: float = float(a.stats[stat]) - float(before_stats[stat])
@@ -80,7 +87,7 @@ static func month(state: Dictionary) -> Dictionary:
 			var recovered_amount: float = maxf(0, before_fatigue - float(a.fatigue))
 			total_recovery += recovered_amount
 			total_fatigue += maxf(0, float(a.fatigue) - before_fatigue)
-			timeline.append({"week":week_index+1,"slot":slot,"action_id":action_id,"scene_id":action_id,"name":act.name,"fatigue_before":before_fatigue,"fatigue_after":a.fatigue,"recovered":recovered_amount,"potential_recovery":maxf(0,-float(act.fatigue)*scale),"cash_before":before_cash,"cash_after":a.cash,"gains":action_gains,"skipped":false})
+			timeline.append({"week":week_index+1,"slot":slot,"action_id":action_id,"scene_id":action_id,"name":act.name,"fatigue_before":before_fatigue,"fatigue_after":a.fatigue,"recovered":recovered_amount,"potential_recovery":maxf(0,-float(act.fatigue)*scale),"cash_before":before_cash,"cash_after":a.cash,"gains":action_gains,"skipped":false,"notes":action_notes})
 		var before_natural: float = a.fatigue
 		a.fatigue = maxf(0, a.fatigue - float(d.weekly_recovery))
 		var recovered_natural: float = before_natural - float(a.fatigue)
@@ -95,6 +102,8 @@ static func month(state: Dictionary) -> Dictionary:
 	a.cash -= fixed_cost
 	a.months += 1
 	a.age = 18 + int(a.months) / 12
+	a.consumable_month=int(a.months)
+	a.consumables_used=0
 	var gains: Array = []
 	for stat in a.stats:
 		var delta: float = float(a.stats[stat]) - float(start_stats[stat])
@@ -105,6 +114,7 @@ static func month(state: Dictionary) -> Dictionary:
 		"natural_recovery":natural_recovery,"fatigue_added":total_fatigue,
 		"stat_gains":{}}
 	for key in a.stats: report.stat_gains[key] = float(a.stats[key]) - float(start_stats[key])
+	report.achievements=Progression.achievements(next)
 	a.month_history.append(report)
 	if a.month_history.size() > 120: a.month_history.pop_front()
 	return {"ok":true, "state":next, "report":report}
@@ -124,6 +134,7 @@ static func opponent(state: Dictionary) -> Dictionary:
 static func fight(state: Dictionary, strategy: String, match_seed: int) -> Dictionary:
 	var a: Dictionary = state.current_athlete
 	if a.get("retired",false): return {"ok":false,"error":"은퇴한 선수입니다."}
+	if not Progression.pending_reason(state).is_empty():return {"ok":false,"error":Progression.pending_reason(state),"event_pending":true}
 	if a.months < a.next_fight_month:
 		return {"ok":false, "error":"다음 경기까지 %d개월 남았습니다." % (a.next_fight_month-a.months)}
 	if not strategy in GameCatalog.data().strategy_names: return {"ok":false,"error":"전략 오류"}
@@ -140,6 +151,7 @@ static func fight(state: Dictionary, strategy: String, match_seed: int) -> Dicti
 	n.cash += reward
 	n.fatigue = minf(100, n.fatigue + 24)
 	n.next_fight_month = n.months + int(GameCatalog.data().fight_gap)
+	result.achievements=Progression.achievements(next)
 	result.reward = reward
 	result.month = n.months
 	result.opponent = b.name
@@ -147,8 +159,8 @@ static func fight(state: Dictionary, strategy: String, match_seed: int) -> Dicti
 	if n.fights.size() > 120: n.fights.pop_front()
 	return {"ok":true, "state":next, "result":result}
 
-static func new_generation(previous: Dictionary, name: String, style: String, appearance: int = 0) -> Dictionary:
-	var next = create(name,style,appearance)
+static func new_generation(previous: Dictionary, name: String, style: String, appearance: int = 0, base: String = "") -> Dictionary:
+	var next = create_from_base(name,base,appearance) if not base.is_empty() else create(name,style,appearance)
 	for key in ["account_legacy","gym_facilities","hall_of_fame","coaches","achievements"]:
 		if previous.has(key): next[key] = previous[key].duplicate(true)
 	return next
@@ -159,10 +171,11 @@ static func can_retire(state: Dictionary) -> bool:
 
 static func retire(state: Dictionary) -> Dictionary:
 	if not can_retire(state): return {"ok":false,"error":"은퇴 정산에는 18개월과 공식 경기 3회가 필요합니다."}
+	if not Progression.pending_reason(state).is_empty():return {"ok":false,"error":Progression.pending_reason(state)}
 	var next = state.duplicate(true)
 	var a: Dictionary = next.current_athlete
 	var reward: int = mini(60,10+int(a.wins)*2)
-	next.hall_of_fame.append({"athlete_id":a.athlete_id,"name":a.name,"months":a.months,"age":a.age,"wins":a.wins,"losses":a.losses,"draws":a.draws,"stats":a.stats.duplicate(true),"lp":reward})
+	next.hall_of_fame.append({"athlete_id":a.athlete_id,"name":a.name,"months":a.months,"age":a.age,"wins":a.wins,"losses":a.losses,"draws":a.draws,"stats":a.stats.duplicate(true),"lp":reward,"background_base":a.background_base,"skills":a.skills.duplicate(true),"training_counts":a.training_counts.duplicate(true),"equipment":a.equipment.duplicate(true)})
 	next.account_legacy.lp += reward
 	a.retired = true
 	return {"ok":true,"state":next}
@@ -182,3 +195,10 @@ static func facility_bonus(state: Dictionary, stat: String) -> float:
 	for id in GameCatalog.data().facilities:
 		if GameCatalog.data().facilities[id].stat == stat: result += .05*mini(3,int(state.gym_facilities.get(id,{}).get("level",0)))
 	return minf(1.15,result)
+
+static func create_from_base(name: String, base: String, appearance: int = 0) -> Dictionary:
+	var definition: Dictionary=GameCatalog.data().bases[base]
+	var result=create(name,definition.style,appearance)
+	result.current_athlete.background_base=base
+	result.current_athlete.stats=definition.stats.duplicate(true)
+	return result

@@ -6,7 +6,7 @@
     "grappling": "그래플링",
     "power": "파워",
     "endurance": "지구력",
-    "speed": "스피드",
+    "speed": "민첩",
     "mental": "멘탈"
   },
   "style_names": {
@@ -47,7 +47,8 @@
         "striking": 2.8,
         "speed": 0.6
       },
-      "kind": "training"
+      "kind": "training",
+      "icon": 0
     },
     "kickboxing": {
       "name": "킥복싱",
@@ -57,7 +58,8 @@
         "striking": 2.2,
         "power": 0.8
       },
-      "kind": "training"
+      "kind": "training",
+      "icon": 1
     },
     "wrestling": {
       "name": "레슬링",
@@ -67,7 +69,8 @@
         "wrestling": 2.8,
         "endurance": 0.6
       },
-      "kind": "training"
+      "kind": "training",
+      "icon": 2
     },
     "bjj": {
       "name": "주짓수",
@@ -77,7 +80,8 @@
         "grappling": 2.8,
         "mental": 0.6
       },
-      "kind": "training"
+      "kind": "training",
+      "icon": 4
     },
     "judo": {
       "name": "유도",
@@ -88,7 +92,8 @@
         "power": 1,
         "grappling": 0.5
       },
-      "kind": "training"
+      "kind": "training",
+      "icon": 3
     },
     "weights": {
       "name": "웨이트",
@@ -98,7 +103,8 @@
         "power": 2.5,
         "endurance": 0.5
       },
-      "kind": "training"
+      "kind": "training",
+      "icon": 5
     },
     "cardio": {
       "name": "유산소",
@@ -108,7 +114,8 @@
         "endurance": 2.5,
         "speed": 0.5
       },
-      "kind": "training"
+      "kind": "training",
+      "icon": 6
     },
     "agility": {
       "name": "민첩성",
@@ -118,7 +125,8 @@
         "speed": 2.5,
         "striking": 0.4
       },
-      "kind": "training"
+      "kind": "training",
+      "icon": 7
     },
     "sparring": {
       "name": "스파링",
@@ -130,7 +138,8 @@
         "grappling": 1,
         "mental": 1
       },
-      "kind": "training"
+      "kind": "training",
+      "icon": 8
     },
     "mental": {
       "name": "멘탈",
@@ -139,14 +148,16 @@
       "gains": {
         "mental": 2.5
       },
-      "kind": "training"
+      "kind": "training",
+      "icon": 9
     },
     "rest": {
       "name": "휴식 / 회복",
       "cost": 0,
       "fatigue": -18,
       "gains": {},
-      "kind": "training"
+      "kind": "training",
+      "icon": 10
     },
     "job": {
       "name": "편의점 알바",
@@ -154,7 +165,8 @@
       "fatigue": 10,
       "gains": {},
       "kind": "life",
-      "income": 18
+      "income": 18,
+      "icon": 11
     },
     "delivery": {
       "name": "배달 알바",
@@ -164,7 +176,8 @@
         "endurance": 0.4
       },
       "kind": "life",
-      "income": 23
+      "income": 23,
+      "icon": 12
     },
     "life_rest": {
       "name": "충분한 휴식",
@@ -172,7 +185,102 @@
       "fatigue": -22,
       "gains": {},
       "kind": "life",
-      "income": 0
+      "income": 0,
+      "icon": 10
+    },
+    "cleaning": {
+      "name": "체육관 청소",
+      "cost": 0,
+      "fatigue": 6,
+      "gains": {
+        "mental": 0.3
+      },
+      "kind": "life",
+      "income": 15,
+      "icon": 13,
+      "requirements": {}
+    },
+    "warehouse": {
+      "name": "창고 상하차",
+      "cost": 0,
+      "fatigue": 24,
+      "gains": {
+        "power": 0.4
+      },
+      "kind": "life",
+      "income": 28,
+      "icon": 14,
+      "requirements": {}
+    },
+    "cafe": {
+      "name": "카페 알바",
+      "cost": 0,
+      "fatigue": 11,
+      "gains": {
+        "mental": 0.2
+      },
+      "kind": "life",
+      "income": 20,
+      "icon": 15,
+      "requirements": {}
+    },
+    "event_work": {
+      "name": "행사 진행 보조",
+      "cost": 0,
+      "fatigue": 14,
+      "gains": {
+        "mental": 0.3
+      },
+      "kind": "life",
+      "income": 24,
+      "icon": 16,
+      "requirements": {
+        "unlock": "event_work"
+      }
+    },
+    "coach_job": {
+      "name": "초보 지도 코치",
+      "cost": 0,
+      "fatigue": 12,
+      "gains": {
+        "mental": 0.6
+      },
+      "kind": "life",
+      "income": 32,
+      "icon": 17,
+      "requirements": {
+        "unlock": "coach_job"
+      }
+    },
+    "social": {
+      "name": "친구 만나기",
+      "cost": 4,
+      "fatigue": -6,
+      "gains": {
+        "mental": 0.4
+      },
+      "kind": "life",
+      "income": 0,
+      "icon": 9,
+      "requirements": {
+        "met_friend": true
+      },
+      "affinity": 6
+    },
+    "date": {
+      "name": "데이트",
+      "cost": 8,
+      "fatigue": -14,
+      "gains": {
+        "mental": 0.6
+      },
+      "kind": "life",
+      "income": 0,
+      "icon": 9,
+      "requirements": {
+        "partner": true
+      },
+      "affinity": 8
     }
   },
   "main_ids": [
@@ -191,7 +299,14 @@
   "life_ids": [
     "job",
     "delivery",
-    "life_rest"
+    "life_rest",
+    "cleaning",
+    "warehouse",
+    "cafe",
+    "event_work",
+    "coach_job",
+    "social",
+    "date"
   ],
   "strategy_names": {
     "balanced": "균형",
@@ -229,6 +344,83 @@
     "grappling": {
       "name": "주짓수 도장",
       "stat": "grappling"
+    }
+  },
+  "bases": {
+    "boxing": {
+      "name": "복싱",
+      "style": "striker",
+      "stats": {
+        "striking": 38,
+        "wrestling": 18,
+        "grappling": 16,
+        "power": 26,
+        "endurance": 26,
+        "speed": 34,
+        "mental": 26
+      },
+      "description": "빠른 타격과 민첩 · 그래플링 보완 필요",
+      "total": 184
+    },
+    "kickboxing": {
+      "name": "킥복싱",
+      "style": "striker",
+      "stats": {
+        "striking": 38,
+        "wrestling": 16,
+        "grappling": 14,
+        "power": 30,
+        "endurance": 28,
+        "speed": 32,
+        "mental": 26
+      },
+      "description": "타격과 파워 · 테이크다운 방어 보완",
+      "total": 184
+    },
+    "wrestling": {
+      "name": "레슬링",
+      "style": "wrestler",
+      "stats": {
+        "striking": 16,
+        "wrestling": 40,
+        "grappling": 24,
+        "power": 32,
+        "endurance": 32,
+        "speed": 20,
+        "mental": 20
+      },
+      "description": "테이크다운과 지구력 · 타격 보완",
+      "total": 184
+    },
+    "judo": {
+      "name": "유도",
+      "style": "wrestler",
+      "stats": {
+        "striking": 16,
+        "wrestling": 32,
+        "grappling": 22,
+        "power": 36,
+        "endurance": 34,
+        "speed": 22,
+        "mental": 22
+      },
+      "description": "힘과 지구력 · 타격·민첩 보완",
+      "total": 184
+    },
+    "bjj": {
+      "name": "주짓수",
+      "style": "grappler",
+      "stats": {
+        "striking": 16,
+        "wrestling": 22,
+        "grappling": 42,
+        "power": 20,
+        "endurance": 26,
+        "speed": 34,
+        "mental": 24
+      },
+      "description": "그래플링과 민첩 · 타격·파워 보완",
+      "total": 184
     }
   }
 }

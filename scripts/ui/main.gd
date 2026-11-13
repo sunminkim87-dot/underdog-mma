@@ -32,6 +32,7 @@ var picker_id: String = "boxing"
 var picker_info: Label
 var picker_meter: ProgressBar
 var hero_scene: ActivityScene
+var base_preview: VBoxContainer
 
 func _ready() -> void:
 	var theme_resource = Theme.new()
@@ -46,7 +47,12 @@ func _ready() -> void:
 		state = loaded.state
 		if loaded.recovered: status_message = "백업에서 복구됨 · 저장 버튼으로 확정"
 	add_child(cloud)
+	if cloud.was_online:
+		state={}
+		save_path="user://online_cache_v1.json"
+		status_message="온라인 이어하기 · 서버 연결 중"
 	show_screen("lobby")
+	if cloud.was_online:call_deferred("resume_online")
 
 func box_style(color: Color, border: Color = Color.TRANSPARENT, radius: int = 12) -> StyleBoxFlat:
 	var style = StyleBoxFlat.new()
@@ -132,6 +138,7 @@ func section_title(kicker: String, title: String, detail: String = "") -> void:
 	if not detail.is_empty(): content.add_child(label(detail, 16, MUTED))
 
 func show_screen(target: String) -> void:
+	if cloud.connecting:cloud.cancel_connection()
 	screen = target
 	for child in get_children():
 		if child == cloud: continue
@@ -147,7 +154,7 @@ func show_screen(target: String) -> void:
 	shell.add_child(top)
 	var header = row(top)
 	header.add_child(label("U / 언더독", 21, LIME))
-	var p0 = label("v0.2  ·  " + ("서버 연결" if cloud.connected else "개발 테스트"), 12, GREEN if cloud.connected else MUTED)
+	var p0 = label("v0.3 · "+("서버 연결" if cloud.connected else ("온라인 대기" if cloud.was_online else "개발 테스트")),12,GREEN if cloud.connected else MUTED)
 	p0.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	header.add_child(p0)
 	scroll = ScrollContainer.new()
@@ -165,6 +172,10 @@ func show_screen(target: String) -> void:
 		"hall": build_hall()
 		"gym": build_gym()
 		"shop": build_shop()
+		"cash_shop": build_cash_shop()
+		"social": build_social()
+		"skills": build_skills()
+		"achievements": build_achievements()
 		"create": build_creation()
 		"home": build_home()
 		"schedule": build_schedule()
@@ -242,11 +253,14 @@ func build_creation() -> void:
 	name_input.custom_minimum_size.y = 48
 	name_input.add_theme_stylebox_override("normal",box_style(PANEL2))
 	form.add_child(name_input)
-	form.add_child(label("시작 스타일",15,MUTED))
-	style_input = select(form,["striker","wrestler","grappler"],GameCatalog.data().style_names,"striker",func(_id): update_style_hint())
+	form.add_child(label("출신 종목 · 베이스",15,MUTED))
+	var base_names: Dictionary={}
+	for id in GameCatalog.data().bases:base_names[id]=GameCatalog.data().bases[id].name
+	style_input=select(form,GameCatalog.data().bases.keys(),base_names,"boxing",func(_id):update_style_hint())
 	var hint = label("",15,BLUE)
 	hint.name = "StyleHint"
 	form.add_child(hint)
+	base_preview=stack(form,6)
 	form.add_child(label("선수 트렁크 · 대한민국",15,MUTED))
 	appearance_input = select(form,["0","1","2"],{"0":"코랄","1":"블루","2":"퍼플"},"0",func(id): hero_scene.appearance = int(id))
 	update_style_hint()
@@ -254,27 +268,40 @@ func build_creation() -> void:
 	button(content,"로비로",func(): show_screen("lobby"))
 
 func update_style_hint() -> void:
-	var hint = content.find_child("StyleHint", true, false)
-	if hint == null: return
-	var id = style_input.get_item_metadata(style_input.selected)
-	var parts: Array = []
-	for k in GameCatalog.data().style_bonus[id]: parts.append("%s +%d" % [GameCatalog.data().stat_names[k], GameCatalog.data().style_bonus[id][k]])
-	hint.text = "초기 보너스: " + " · ".join(parts)
-	if is_instance_valid(hero_scene): hero_scene.set_action({"striker":"boxing","wrestler":"wrestling","grappler":"bjj"}[id],appearance_input.selected if is_instance_valid(appearance_input) else 0)
+	var hint=content.find_child("StyleHint",true,false)
+	if hint==null:return
+	var id: String=style_input.get_item_metadata(style_input.selected)
+	var definition: Dictionary=GameCatalog.data().bases[id]
+	hint.text="초기 총합 184 · "+str(definition.description)
+	if is_instance_valid(base_preview):
+		for child in base_preview.get_children():
+			base_preview.remove_child(child)
+			child.queue_free()
+		var grid=GridContainer.new()
+		grid.columns=2
+		grid.add_theme_constant_override("h_separation",14)
+		base_preview.add_child(grid)
+		for stat in GameCatalog.data().stat_names:
+			var line=stack(grid,3)
+			var value: int=definition.stats[stat]
+			line.add_child(label("%s  %d" % [GameCatalog.data().stat_names[stat],value],15,GREEN if value>=32 else (ORANGE if value<24 else TEXT)))
+			meter_bar(line,value,GREEN if value>=32 else (ORANGE if value<24 else BLUE),6)
+	if is_instance_valid(hero_scene):hero_scene.set_action(id,appearance_input.selected if is_instance_valid(appearance_input) else 0)
 
 func create_athlete() -> void:
 	if name_input.text.strip_edges().is_empty():
 		show_modal("이름을 입력해 주세요","선수 이름은 1~16자로 입력해 주세요.")
 		return
 	var athlete_name = name_input.text.strip_edges()
-	var style: String = style_input.get_item_metadata(style_input.selected)
+	var base: String=style_input.get_item_metadata(style_input.selected)
+	var style: String=GameCatalog.data().bases[base].style
 	var color: int = appearance_input.selected
 	var finish = func():
 		if cloud.connected:
-			var response = await cloud.mutate("new",{"name":athlete_name,"style":style,"appearance":color})
+			var response = await cloud.mutate("new",{"name":athlete_name,"style":style,"base":base,"appearance":color})
 			if accept_cloud(response): show_screen("home")
 		else:
-			var next = Career.new_generation(state,athlete_name,style,color)
+			var next = Career.new_generation(state,athlete_name,style,color,base)
 			if commit(next): show_screen("home")
 	if not state.is_empty():
 		show_modal("새 선수로 시작할까요?","현재 선수는 새 선수로 바뀝니다. 명예의 전당·LP·체육관 시설은 유지됩니다. 은퇴 정산 전이라면 현재 선수의 보상은 받지 못합니다.",finish,"새 선수 시작")
@@ -288,22 +315,27 @@ func build_home() -> void:
 	back.size_flags_horizontal = Control.SIZE_SHRINK_END
 	back.add_theme_font_size_override("font_size",14)
 	var info = row(content)
-	info.add_child(label("%s · %d개월 차" % [GameCatalog.data().style_names[a.style],a.months],15,MUTED))
+	info.add_child(label("%s · %d개월 차" % [GameCatalog.data().bases[a.background_base].name,a.months],15,MUTED))
 	var cash = label("%d만원" % a.cash,20,LIME)
 	cash.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	info.add_child(cash)
-	hero_scene = scene_view(content,"boxing",225)
+	hero_scene = scene_view(content,a.background_base,225)
 	var scene_caption = row(content)
 	scene_caption.add_child(label("언더독 MMA · 오늘도 한 걸음",15,MUTED))
 	scene_caption.add_child(label("%d승 %d패 %d무" % [a.wins,a.losses,a.draws],17,LIME))
 	var body = card(content)
-	gauge(body,"활력",Career.energy(a),GREEN,"피로를 줄이면 활력이 회복됩니다")
+	gauge(body,"체력",Career.energy(a),GREEN,"훈련·알바로 소모 · 휴식·회복 물품으로 회복")
 	gauge(body,"피로",a.fatigue,ORANGE)
 	var condition_row = row(body)
 	condition_row.add_child(label("컨디션 %d%%" % Career.condition(a),15,BLUE))
 	condition_row.add_child(label("충분히 회복됨" if a.fatigue<=0 else "휴식 최대 -22 · 지금 실제 -%.2f" % minf(22,a.fatigue),14,GREEN))
 	if a.get("retired",false):
 		button(content,"은퇴한 선수입니다 · 새 선수 시작",func(): show_screen("create"),true)
+	elif not a.get("pending_event","").is_empty():
+		var event_card=card(content,Color("30364f"))
+		event_card.add_child(label("새로운 이야기가 기다립니다",20,LIME))
+		event_card.add_child(label(GameCatalog.extra().events[a.pending_event].title,15,MUTED))
+		button(event_card,"선택할 이벤트 보기",show_event,true,"open_event")
 	elif Career.fight_due(state):
 		var due = card(content,Color("4b3033"))
 		due.add_child(label("오늘은 경기일",21,ORANGE))
@@ -312,6 +344,11 @@ func build_home() -> void:
 	else:
 		button(content,"%d개월 차 일정 편성  →" % (int(a.months)+1),func(): show_screen("schedule"),true,"plan")
 		content.add_child(label("다음 경기까지 %d개월 · 회복을 포함해 일정을 준비하세요" % (a.next_fight_month-a.months),14,BLUE))
+	var shortcuts=row(content,5)
+	for item in [["shop","물품"],["social","인연"],["skills","기술"],["achievements","업적"]]:
+		var destination: String=item[0]
+		var shortcut=button(shortcuts,item[1],func():show_screen(destination),false,"home_"+destination)
+		shortcut.add_theme_font_size_override("font_size",15)
 	var stats = card(content)
 	stats.add_child(label("선수 능력",18))
 	var grid = GridContainer.new()
@@ -345,6 +382,12 @@ func load_clicked() -> void:
 func build_schedule() -> void:
 	var a: Dictionary = state.current_athlete
 	section_title("%d개월 차 · 월간 일정" % (int(a.months)+1),"네 번의 일주일, 나만의 페이스")
+	if not a.get("pending_event","").is_empty():
+		content.add_child(label("이벤트 선택을 먼저 마쳐 주세요.",20,LIME))
+		button(content,"이벤트 보기",show_event,true,"open_event")
+		var blocked=button(content,"이벤트 선택 대기",month_clicked,false,"advance")
+		blocked.disabled=true
+		return
 	if Career.fight_due(state) or a.get("retired",false):
 		scene_view(content,"sparring",200)
 		content.add_child(label("예정 경기 먼저 진행" if not a.get("retired",false) else "은퇴한 선수입니다",24,ORANGE))
@@ -372,10 +415,11 @@ func build_schedule() -> void:
 			var slot_key: String = slot
 			var id: String = state.schedule[i][slot]
 			var act = GameCatalog.action(id)
+			var available=Progression.action_available(state,id)
 			var scale: float = .55 if slot == "aux" else 1.0
 			var recovery: bool = float(act.fatigue)<0
 			var tile = Button.new()
-			tile.custom_minimum_size.y = 101
+			tile.custom_minimum_size.y = 115
 			tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			tile.add_theme_stylebox_override("normal",box_style(Color("23443f") if recovery else PANEL,Color("3a7062") if recovery else Color("34465d"),9))
 			tile.add_theme_stylebox_override("hover",box_style(PANEL2,LIME,9))
@@ -409,7 +453,7 @@ func build_schedule() -> void:
 	preview.add_child(forecast)
 	var result = Career.month(state)
 	if result.ok:
-		gauge(preview,"월말 활력",100-result.report.fatigue,GREEN)
+		gauge(preview,"월말 체력",100-result.report.fatigue,GREEN)
 		preview.add_child(label("행동 회복 %.1f + 자연 회복 %.1f" % [result.report.recovery_total,result.report.natural_recovery],14,GREEN))
 	update_forecast()
 	button(content,"이 일정으로 한 달 시작",month_clicked,true,"advance")
@@ -457,7 +501,9 @@ func month_clicked() -> void:
 		if cloud.connected:
 			var response = await cloud.mutate("month",{})
 			if accept_cloud(response): play_month(response.report)
-		elif commit(result.state): play_month(report),"한 달 시작")
+		else:
+			Progression.evaluate(result.state)
+			if commit(result.state):play_month(report),"한 달 시작")
 
 func show_month_report(report: Dictionary) -> void:
 	var sheet = open_sheet("%d개월 차 · 성장 리포트" % report.month)
@@ -476,8 +522,11 @@ func show_month_report(report: Dictionary) -> void:
 	gauge(body,"남은 피로",report.fatigue,ORANGE)
 	body.add_child(label("현금 %+d만원  →  %d만원" % [report.cash_delta,report.cash],19,LIME))
 	if report.has("recovery_total"): body.add_child(label("실제 회복 %.1f · 자연 회복 %.1f" % [report.recovery_total,report.natural_recovery],16,GREEN))
+	show_awards(body,report.get("achievements",[]))
 	button(body,"주간 상세 기록",func(): show_modal("주간 기록","\n\n".join(report.logs)))
-	button(sheet.footer,"확인",func(): sheet.overlay.queue_free(),true,"modal_confirm")
+	button(sheet.footer,"확인",func():
+		sheet.overlay.queue_free()
+		if not state.current_athlete.get("pending_event","").is_empty():call_deferred("show_event"),true,"modal_confirm")
 
 func build_fight() -> void:
 	var a: Dictionary = state.current_athlete
@@ -525,7 +574,8 @@ func build_fight() -> void:
 	content.add_child(label("출전 수당 12만 · 승리 보너스 10만\n경기 후 피로 +24 · 다음 경기는 3개월 후", 16, MUTED))
 	var wait: int = maxi(0, int(a.next_fight_month-a.months))
 	var start = button(content, "경기까지 %d개월 · 훈련을 진행하세요" % wait if wait > 0 else "옥타곤에 입장하기  →", fight_clicked, true, "start_fight")
-	start.disabled = wait > 0 or a.get("retired",false)
+	start.disabled = wait > 0 or a.get("retired",false) or not a.get("pending_event","").is_empty()
+	if not a.get("pending_event","").is_empty():button(content,"이벤트를 먼저 선택하세요",show_event,true,"open_event")
 
 func fight_clicked() -> void:
 	var match_seed: int = int(state.settings.seed) if state.settings.fixed_seed else int(randi() & 0x7fffffff)
@@ -543,9 +593,11 @@ func fight_clicked() -> void:
 			if accept_cloud(response):
 				show_screen("records")
 				show_fight_report(response.result)
-		elif commit(result.state):
-			show_screen("records")
-			show_fight_report(result.result),"경기 시작")
+		else:
+			Progression.evaluate(result.state)
+			if commit(result.state):
+				show_screen("records")
+				show_fight_report(result.result),"경기 시작")
 
 func show_fight_report(result: Dictionary) -> void:
 	var outcome = {"player":"승리", "opponent":"패배", "draw":"무승부"}[result.winner]
@@ -566,6 +618,7 @@ func show_fight_report(result: Dictionary) -> void:
 		opponent.add_child(label("상대 체력 %.0f" % round_result.hp[1],14,ORANGE))
 		meter_bar(opponent,round_result.hp[1],ORANGE,8)
 	sheet.body.add_child(label("출전 수당 +%d만원 · 피로 +24" % result.reward,19,LIME))
+	show_awards(sheet.body,result.get("achievements",[]))
 	sheet.body.add_child(label("전략 %s · 시드 %d" % [GameCatalog.data().strategy_names[result.strategy],result.seed],13,MUTED))
 	button(sheet.body,"상세 경기 로그",func(): show_modal("라운드별 경기 기록","\n".join(result.logs)))
 	button(sheet.footer,"확인",func(): sheet.overlay.queue_free(),true,"modal_confirm")
@@ -591,13 +644,14 @@ func build_records() -> void:
 	management.add_child(label("자동 저장 + 이전 저장 백업 1개\n버전 1 · 내 선수 ID " + str(a.athlete_id).left(8), 14, MUTED))
 	button(management, "저장 폴더 열기", func(): OS.shell_open(ProjectSettings.globalize_path("user://")))
 	button(management, "새 선수 만들기", func(): show_screen("create"), false, "new_game")
-	content.add_child(label("P0 구현 범위\n국내 신인 육성 · 훈련 · 아르바이트 · 자동 경기 · 저장\n\n다음 단계\n해외 커리어, 전문 대회, 부상, 은퇴, 계승, 코치, 체육관 설립은 아직 구현하지 않았습니다.", 15, MUTED))
+	content.add_child(label("P0 구현 범위\n국내 신인 육성 · 훈련 · 아르바이트 · 자동 경기 · 저장\n\n다음 단계\n해외 커리어·전문 대회·부상·은퇴 코치·선수 설립 체육관·운영 서버와 실제 결제는 이후 단계입니다.", 15, MUTED))
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		if is_instance_valid(playback):
 			playback.finish()
 		elif is_instance_valid(modal):
+			if modal.get_meta("connection_dialog",false):cloud.cancel_connection()
 			modal.queue_free()
 			modal = null
 		elif not state.is_empty(): show_screen("home")
@@ -667,10 +721,12 @@ func open_sheet(title_value: String) -> Dictionary:
 
 func build_lobby() -> void:
 	section_title("ROAD TO CHAMPION","무명에서, 챔피언까지.")
-	scene_view(content,"boxing",250)
+	scene_view(content,"boxing",190)
 	content.add_child(label("언더독: MMA 선수 키우기",25,LIME))
 	if cloud.connected:
 		content.add_child(label("온라인 연결됨 · 진행과 재화는 서버에서 처리",14,GREEN))
+	elif cloud.was_online:
+		content.add_child(label("온라인 계정 연결 대기 · 서버 저장은 보존됩니다.",14,ORANGE))
 	else:
 		content.add_child(label("개발 테스트 모드 · 정식 서버와 Google Play 미연결",14,ORANGE))
 	if not state.is_empty():
@@ -682,11 +738,21 @@ func build_lobby() -> void:
 	else:
 		var locked = button(content,"이어서 진행하기 · 저장된 선수 없음",func(): pass,false,"continue")
 		locked.disabled = true
-	button(content,"새로 선수 키우기",func(): show_screen("create"),state.is_empty(),"new_game")
+	var new_button=button(content,"새로 선수 키우기",func():show_screen("create"),state.is_empty(),"new_game")
+	new_button.disabled=cloud.was_online and not cloud.connected
 	var menu = row(content)
 	button(menu,"명예의 전당",func(): show_screen("hall"),false,"hall")
 	button(menu,"훈련소 강화",func(): show_screen("gym"),false,"gym")
-	button(content,"캐시 상점",func(): show_screen("shop"),false,"shop")
+	var daily_menu=row(content)
+	button(daily_menu,"장비·회복 상점",func():show_screen("shop"),false,"shop")
+	button(daily_menu,"인연·이벤트",func():show_screen("social"),false,"social")
+	var collection_menu=row(content)
+	button(collection_menu,"특별 기술",func():show_screen("skills"),false,"skills")
+	button(collection_menu,"업적",func():show_screen("achievements"),false,"achievements")
+	button(content,"캐시 상점 · 결제 준비 중",func():show_screen("cash_shop"),false,"cash_shop")
+	if cloud.was_online and not cloud.connected:
+		content.add_child(label("온라인 계정 연결을 기다리는 중입니다. 자동으로 로컬 저장으로 전환하지 않습니다.",14,ORANGE))
+		button(content,"개발용 로컬 테스트로 전환",switch_local_test,false,"local_test")
 	button(content,"온라인 서버 연결",show_connection,false,"connect")
 
 func build_hall() -> void:
@@ -737,7 +803,7 @@ func build_gym() -> void:
 		upgrade.disabled = level>=3 or lp<cost or state.is_empty()
 	button(content,"로비로",func(): show_screen("lobby"))
 
-func build_shop() -> void:
+func build_cash_shop() -> void:
 	section_title("캐시 상점","캐시는 계정에 보관됩니다")
 	var c = card(content)
 	c.add_child(label("보유 캐시   %d" % int(cloud.wallet.get("cash",0)),26,LIME))
@@ -775,6 +841,10 @@ func open_action_picker(week: int, slot: String) -> void:
 		var b = button(grid,title,func(): preview_action(selected_id),false,"choose_"+id)
 		b.add_theme_font_size_override("font_size",14)
 		b.custom_minimum_size.y = 73
+		var available=Progression.action_available(state,id)
+		if not available.ok:
+			b.disabled=true
+			b.text=act.name+"\n잠김 · "+str(available.reason)
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	button(sheet.footer,"취소",func(): sheet.overlay.queue_free(),false,"modal_cancel")
 	button(sheet.footer,"이 행동 적용",func():
@@ -797,7 +867,7 @@ func preview_action(id: String) -> void:
 		for stat in event.gains: parts.append("%s +%.1f" % [GameCatalog.data().stat_names[stat],event.gains[stat]])
 		var diff: float = event.fatigue_after-event.fatigue_before
 		var effect = "회복 최대 %.2f · 실제 %.2f" % [event.potential_recovery,event.recovered] if event.potential_recovery>0 else "피로 +%.1f" % diff
-		picker_info.text = "%s\n피로 %.2f → %.2f · 활력 %.2f\n%s" % [effect,event.fatigue_before,event.fatigue_after,100-event.fatigue_after," · ".join(parts)]
+		picker_info.text = "%s\n피로 %.2f → %.2f · 체력 %.2f\n%s" % [effect,event.fatigue_before,event.fatigue_after,100-event.fatigue_after," · ".join(parts)]
 		picker_meter.value = 100-event.fatigue_after
 		return
 	picker_info.text = result.get("error","")
@@ -825,26 +895,30 @@ func play_month(report: Dictionary) -> void:
 		show_month_report(report))
 
 func show_connection() -> void:
-	var sheet = open_sheet("온라인 서버 연결")
-	sheet.body.add_child(label("운영 서버 주소가 준비되면 입력합니다. 연결 후에는 경기·훈련·시설을 서버에서 처리하고 계정 진행을 불러옵니다.",16))
-	var address = LineEdit.new()
-	address.placeholder_text = "https://서버주소"
-	address.text = cloud.base_url
-	address.custom_minimum_size.y = 50
+	var sheet=open_sheet("온라인 서버 연결")
+	sheet.overlay.set_meta("connection_dialog",true)
+	sheet.body.add_child(label("운영 서버 주소를 입력하면 계정 진행을 불러옵니다. 연결 중 창을 닫으면 안전하게 취소합니다.",16))
+	var address=LineEdit.new()
+	address.placeholder_text="https://서버주소"
+	address.text=cloud.base_url
+	address.custom_minimum_size.y=50
 	sheet.body.add_child(address)
-	var hint = label("정식 서버는 아직 배포하지 않았습니다. 현재 로컬 플레이는 기능 확인용 개발 테스트입니다.",14,ORANGE)
+	var hint=label("현재 운영 서버와 실제 결제는 미연결입니다.",14,ORANGE)
 	sheet.body.add_child(hint)
-	button(sheet.footer,"닫기",func(): sheet.overlay.queue_free(),false,"modal_confirm")
+	button(sheet.footer,"닫기",func():
+		cloud.cancel_connection()
+		sheet.overlay.queue_free(),false,"modal_confirm")
 	button(sheet.footer,"연결",func():
-		hint.text = "서버 확인 중…"
-		var response = await cloud.connect_server(address.text)
+		hint.text="서버 확인 중…"
+		var response=await cloud.connect_server(address.text)
+		if not is_instance_valid(sheet.overlay) or response.get("cancelled",false):return
 		if response.get("ok",false):
-			save_path = "user://online_cache_v1.json"
-			state = {}
-			if response.has("state") and response.state != null: accept_cloud(response)
+			save_path="user://online_cache_v1.json"
+			state={}
+			if response.get("state") is Dictionary:accept_cloud(response)
 			notify_message("온라인 서버 연결됨")
 			show_screen("lobby")
-		else: hint.text = str(response.get("error","서버 연결 실패")),true,"server_connect")
+		elif is_instance_valid(hint):hint.text=str(response.get("error","서버 연결 실패")),true,"server_connect")
 
 func accept_cloud(response: Dictionary) -> bool:
 	if not response.get("ok",false):
@@ -855,6 +929,7 @@ func accept_cloud(response: Dictionary) -> bool:
 			show_modal("서버 응답 확인 필요","지원하지 않는 선수 데이터입니다.")
 			return false
 		state = response.state
+		Progression.initialize(state)
 		var error = SaveStore.save_game(state,save_path)
 		if error != OK: notify_message("서버 저장 완료 · 기기 캐시 저장 실패")
 		else: notify_message("온라인 · 서버 저장 완료")
@@ -863,3 +938,207 @@ func accept_cloud(response: Dictionary) -> bool:
 func refresh_cloud() -> void:
 	var response = await cloud.fetch_state()
 	accept_cloud(response)
+
+func resume_online() -> void:
+	var response=await cloud.connect_server(cloud.base_url)
+	if response.get("cancelled",false) or not cloud.was_online:return
+	if response.get("ok",false):
+		save_path="user://online_cache_v1.json"
+		state={}
+		if response.get("state") is Dictionary:accept_cloud(response)
+		notify_message("온라인 이어하기 준비 완료")
+	else:notify_message("온라인 연결 실패 · "+str(response.get("error","서버를 확인해 주세요.")))
+	show_screen("lobby")
+
+func switch_local_test() -> void:
+	cloud.use_local_test()
+	save_path="user://ui_test_career.json" if OS.get_cmdline_user_args().has("--ui-test") else SaveStore.DEFAULT_PATH
+	var saved=SaveStore.load_game(save_path)
+	state=saved.state if saved.ok else {}
+	notify_message("명시적으로 선택한 개발용 로컬 테스트")
+	show_screen("lobby")
+
+func do_progress(operation: String,payload: Dictionary,target: String="home") -> void:
+	var response: Dictionary={}
+	if cloud.connected:
+		response=await cloud.mutate(operation,payload)
+		if not accept_cloud(response):return
+	else:
+		match operation:
+			"buy":response=Progression.buy(state,payload.item)
+			"equip":response=Progression.equip(state,payload.item)
+			"use_item":response=Progression.use_item(state,payload.item)
+			"event":response=Progression.choose(state,payload.event,payload.choice)
+			"focus":response=Progression.focus(state,payload.npc)
+			"end_relationship":response=Progression.end_relationship(state)
+		if not response.get("ok",false):
+			show_modal("확인해 주세요",str(response.get("error","행동을 처리하지 못했습니다.")))
+			return
+		Progression.evaluate(response.state)
+		if not commit(response.state):return
+	show_screen(target)
+	if response.has("recovery"):
+		var sheet=open_sheet("회복 물품 사용 완료")
+		var definition: Dictionary=GameCatalog.extra().items[payload.item]
+		var picture=ActivityIcon.new()
+		picture.action_id=payload.item
+		picture.custom_minimum_size=Vector2(92,92)
+		picture.size_flags_horizontal=Control.SIZE_SHRINK_CENTER
+		sheet.body.add_child(picture)
+		sheet.body.add_child(label(definition.name,23,LIME))
+		sheet.body.add_child(label("실제 회복 +%.2f\n체력 %.2f → %.2f" % [response.recovery,100-response.fatigue_before,100-response.fatigue_after],22,GREEN))
+		var bar=gauge(sheet.body,"체력",100-response.fatigue_before,GREEN)
+		var tween=create_tween()
+		tween.tween_property(bar,"value",100-response.fatigue_after,.65)
+		button(sheet.footer,"확인",func():sheet.overlay.queue_free(),true,"modal_confirm")
+	else:
+		var message: String=str(response.get("notice","변경 사항 저장 완료"))
+		if not response.get("awards",[]).is_empty():message+=" · 새 업적 달성! 업적 화면에서 확인하세요."
+		notify_message(message)
+
+func show_awards(parent: Node,ids: Array) -> void:
+	for id in ids:
+		if not id is String or not id in GameCatalog.extra().achievements:continue
+		var definition: Dictionary=GameCatalog.extra().achievements[id]
+		parent.add_child(label("업적 달성 · %s\n보상: %s 1개 지급" % [definition.name,GameCatalog.extra().items[definition.reward_item].name],16,LIME))
+
+func build_shop() -> void:
+	section_title("알바로 번 돈, 내일을 위한 준비","장비·회복 상점")
+	if state.is_empty():
+		content.add_child(label("선수를 생성하면 게임 내 현금으로 물품을 살 수 있습니다.",19))
+		button(content,"로비로",func():show_screen("lobby"))
+		return
+	var a: Dictionary=state.current_athlete
+	content.add_child(label("게임 내 현금  %d만원" % a.cash,23,LIME))
+	gauge(content,"현재 체력",Career.energy(a),GREEN)
+	content.add_child(label("회복 물품 월 %d / 3회 사용 · 실제 결제와 별개입니다." % (a.consumables_used if int(a.consumable_month)==int(a.months) else 0),14,MUTED))
+	for item_id in GameCatalog.extra().items:
+		var id: String=item_id
+		var definition: Dictionary=GameCatalog.extra().items[id]
+		var quantity: int=int(a.inventory.get(id,0))
+		var c=card(content)
+		var heading=row(c)
+		var picture=ActivityIcon.new()
+		picture.action_id=id
+		picture.custom_minimum_size=Vector2(60,60)
+		heading.add_child(picture)
+		var info=stack(heading,3)
+		info.add_child(label(definition.name,21))
+		info.add_child(label("%d만원 · 보유 %d" % [definition.price,quantity],15,LIME))
+		c.add_child(label(definition.description,15,GREEN if definition.kind=="consumable" else BLUE))
+		var controls=row(c)
+		var buy=button(controls,"%d만원 구매" % definition.price,func():await do_progress("buy",{"item":id},"shop"),false,"buy_"+id)
+		buy.disabled=a.cash<definition.price or a.get("retired",false) or (definition.kind=="equipment" and quantity>0) or quantity>=99
+		if definition.kind=="consumable":
+			var use=button(controls,"사용",func():await do_progress("use_item",{"item":id},"shop"),true,"use_"+id)
+			use.disabled=quantity<=0 or a.fatigue<=0 or a.get("retired",false) or (int(a.consumable_month)==int(a.months) and int(a.consumables_used)>=3)
+		else:
+			var is_equipped: bool=a.equipment.get(definition.slot,"")==id
+			var equip_button=button(controls,"착용 해제" if is_equipped else "착용",func():await do_progress("equip",{"item":id},"shop"),is_equipped,"equip_"+id)
+			equip_button.disabled=quantity<=0 or a.get("retired",false)
+	content.add_child(label("장비·특별 기술의 경기 보정은 능력별 최대 +10입니다. 선수의 기본 능력치를 덮어쓰지 않습니다.",14,MUTED))
+	button(content,"로비로",func():show_screen("lobby"))
+	button(content,"선수 홈",func():show_screen("home"))
+
+func build_social() -> void:
+	section_title("링 밖에서도, 내 이야기는 이어진다","인연·이벤트")
+	if state.is_empty():
+		content.add_child(label("선수를 생성하면 인연 이벤트가 시작됩니다.",18))
+		button(content,"로비로",func():show_screen("lobby"))
+		return
+	var a: Dictionary=state.current_athlete
+	if not a.pending_event.is_empty():button(content,"기다리는 이벤트 · "+str(GameCatalog.extra().events[a.pending_event].title),show_event,true,"open_event")
+	content.add_child(label("생활 일정의 ‘친구 만나기’는 선택한 인연, ‘데이트’는 현재 연인과 시간을 보냅니다. 관계 발전은 이벤트에서 선택합니다.",15,MUTED))
+	for npc_id in GameCatalog.extra().npcs:
+		var id: String=npc_id
+		var definition: Dictionary=GameCatalog.extra().npcs[id]
+		var relation: Dictionary=a.relationships.get(id,{"met":false,"affinity":0,"stage":"unknown"})
+		var c=card(content)
+		var top=row(c)
+		var portrait=NpcPortrait.new()
+		portrait.npc_id=id
+		portrait.custom_minimum_size=Vector2(135,135)
+		portrait.size_flags_horizontal=Control.SIZE_SHRINK_BEGIN
+		top.add_child(portrait)
+		var info=stack(top,5)
+		info.add_child(label("%s · %d세" % [definition.name,definition.age],22,Color(definition.color)))
+		info.add_child(label(definition.job,15,MUTED))
+		info.add_child(label(definition.description,15))
+		info.add_child(label("연인" if a.partner_id==id else ("친구" if relation.met else "아직 만나지 않음"),17,GREEN))
+		gauge(c,"친밀도",relation.affinity,Color(definition.color))
+		var focus_button=button(c,"함께할 친구로 선택됨" if a.focus_npc==id else "친구 만나기 상대로 선택",func():await do_progress("focus",{"npc":id},"social"),a.focus_npc==id,"focus_"+id)
+		focus_button.disabled=not relation.met
+		if a.partner_id==id:
+			button(c,"친구 관계로 정리",func():show_modal("친구로 지낼까요?","서로의 선택을 존중하고 친구로 지냅니다. 다른 인연의 이야기는 계속할 수 있습니다.",func():await do_progress("end_relationship",{},"social"),"친구로 지내기"))
+	button(content,"로비로",func():show_screen("lobby"))
+	if not state.is_empty():button(content,"생활 일정 편성",func():show_screen("schedule"))
+
+func build_skills() -> void:
+	section_title("반복한 기본기가, 나만의 기술로","특별 기술")
+	if state.is_empty():
+		content.add_child(label("선수를 생성한 뒤 기술 조건을 확인할 수 있습니다.",18))
+		button(content,"로비로",func():show_screen("lobby"))
+		return
+	var a: Dictionary=state.current_athlete
+	if not a.pending_event.is_empty():button(content,"이벤트 선택 보기",show_event,true,"open_event")
+	content.add_child(label("훈련·경기 조건 달성 → 감독 이벤트 → 기술 습득. 출신 베이스와 다른 종목의 기술도 배울 수 있습니다.",15,MUTED))
+	for skill_id in GameCatalog.extra().skills:
+		var id: String=skill_id
+		var skill: Dictionary=GameCatalog.extra().skills[id]
+		var learned: bool=id in a.skills
+		var c=card(content,Color("244139") if learned else PANEL)
+		var top=row(c)
+		var picture=ActivityIcon.new()
+		picture.action_id=id
+		picture.custom_minimum_size=Vector2(56,56)
+		top.add_child(picture)
+		top.add_child(label(skill.name+" · "+("습득" if learned else "잠김"),21,GREEN if learned else MUTED))
+		var effects: Array=[]
+		for stat in skill.combat:effects.append("%s +%d" % [GameCatalog.data().stat_names[stat],skill.combat[stat]])
+		c.add_child(label("경기 보정 · "+" / ".join(effects),16,BLUE))
+		var training_count: int=int(a.training_counts.get(skill.action,0))
+		var bouts: int=int(a.wins+a.losses+a.draws)
+		c.add_child(label("%s 훈련 %d / 3회 · 공식 경기 %d / 1회" % [GameCatalog.action(skill.action).name,training_count,bouts],15,MUTED))
+		meter_bar(c,minf(100,training_count/3.0*100),GREEN if learned else BLUE,8)
+		if not learned:c.add_child(label("조건 달성 후 기술 이벤트에서 배울 수 있습니다. 기술 이벤트는 최소 3개월 간격입니다.",13,MUTED))
+	button(content,"로비로",func():show_screen("lobby"))
+
+func build_achievements() -> void:
+	section_title("작은 목표가, 긴 커리어를 만든다","업적")
+	var owned: Array=state.get("achievements",[])
+	content.add_child(label("달성 %d / %d" % [owned.size(),GameCatalog.extra().achievements.size()],22,LIME))
+	for id in GameCatalog.extra().achievements:
+		var definition: Dictionary=GameCatalog.extra().achievements[id]
+		var c=card(content)
+		c.add_child(label(("달성 · " if id in owned else "목표 · ")+str(definition.name),22,GREEN if id in owned else TEXT))
+		c.add_child(label(definition.description,16,MUTED))
+		c.add_child(label("최초 달성 보상: "+str(GameCatalog.extra().items[definition.reward_item].name)+" 1개",14,LIME))
+	content.add_child(label("업적 기록은 계정에 유지됩니다. 같은 업적의 보상은 한 번만 지급됩니다.",14,MUTED))
+	button(content,"로비로",func():show_screen("lobby"))
+
+func show_event() -> void:
+	if state.is_empty():return
+	var id: String=state.current_athlete.get("pending_event","")
+	if id.is_empty():return
+	var definition: Dictionary=GameCatalog.extra().events[id]
+	var sheet=open_sheet(definition.title)
+	if not str(definition.npc).is_empty():
+		var portrait=NpcPortrait.new()
+		portrait.npc_id=definition.npc
+		portrait.custom_minimum_size.y=205
+		sheet.body.add_child(portrait)
+		var npc: Dictionary=GameCatalog.extra().npcs[definition.npc]
+		sheet.body.add_child(label("%s · %d세 · %s" % [npc.name,npc.age,npc.job],18,Color(npc.color)))
+	else:scene_view(sheet.body,str(id).trim_prefix("learn_") if str(id).begins_with("learn_") else "coach_job",180)
+	sheet.body.add_child(label(definition.text,20))
+	for option in definition.choices:
+		var option_id: String=option.id
+		var b=button(sheet.body,option.text,func():await do_progress("event",{"event":id,"choice":option_id},"home"),false,"event_"+option_id)
+		b.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+		b.custom_minimum_size.y=64
+		var reason=Progression.choice_reason(state,option.effects)
+		if not reason.is_empty():
+			b.disabled=true
+			b.text+= "\n"+reason
+	sheet.body.add_child(label("선택은 저장됩니다. 창을 닫아도 인연·기술 화면에서 다시 선택할 수 있습니다.",13,MUTED))
+	button(sheet.footer,"잠시 닫기",func():sheet.overlay.queue_free(),false,"modal_confirm")

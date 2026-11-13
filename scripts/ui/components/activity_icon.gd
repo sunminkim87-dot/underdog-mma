@@ -1,39 +1,25 @@
 class_name ActivityIcon
 extends Control
-var action_id: String = "boxing"
-var tint: Color = Color("ffc16c")
+var action_id: String="boxing"
+var tint: Color=Color("ffc16c")
+static var atlas: Texture2D
 func _ready() -> void:
-	custom_minimum_size = Vector2(32,32)
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if custom_minimum_size.x<=0:custom_minimum_size=Vector2(48,48)
+	mouse_filter=Control.MOUSE_FILTER_IGNORE
+	texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR
+	if atlas==null:atlas=load("res://assets/art/action_icons_v03.png")
 func _draw() -> void:
-	draw_set_transform(Vector2.ZERO,0,size/Vector2(32,32))
-	var c = tint
-	if action_id in ["rest","life_rest","mental","natural_recovery"]:
-		draw_rect(Rect2(4,17,24,4),c)
-		draw_rect(Rect2(4,9,4,17),c)
-		draw_rect(Rect2(9,13,6,4),c)
-		draw_rect(Rect2(17,10,11,7),c)
-	elif action_id in ["job","delivery"]:
-		draw_rect(Rect2(5,8,22,19),c)
-		draw_rect(Rect2(8,4,16,5),c)
-		draw_rect(Rect2(9,11,14,3),Color("203447"))
-		draw_rect(Rect2(18,19,5,5),Color("203447"))
-	elif action_id in ["weights","power"]:
-		draw_rect(Rect2(3,8,5,17),c)
-		draw_rect(Rect2(24,8,5,17),c)
-		draw_rect(Rect2(8,14,16,5),c)
-	elif action_id in ["wrestling","bjj","judo"]:
-		draw_circle(Vector2(10,9),4,c)
-		draw_circle(Vector2(23,11),4,c)
-		draw_line(Vector2(10,14),Vector2(20,23),c,5)
-		draw_line(Vector2(22,16),Vector2(9,25),c,5)
-	elif action_id in ["cardio","agility"]:
-		draw_rect(Rect2(8,8,7,12),c)
-		draw_rect(Rect2(8,19,20,7),c)
-		draw_rect(Rect2(2,12,4,3),c)
-	else:
-		draw_rect(Rect2(9,4,15,16),c)
-		draw_rect(Rect2(5,10,8,9),c)
-		draw_rect(Rect2(11,21,12,7),c)
-		draw_rect(Rect2(12,7,8,3),Color("fff0c4"))
-	draw_set_transform(Vector2.ZERO)
+	var side: float=minf(size.x,size.y)
+	var rect=Rect2((size-Vector2.ONE*side)/2,Vector2.ONE*side)
+	if action_id in ["social","date"]:
+		var points=PackedVector2Array([Vector2(0.5,.9),Vector2(.07,.46),Vector2(.07,.2),Vector2(.3,.1),Vector2(.5,.28),Vector2(.7,.1),Vector2(.93,.2),Vector2(.93,.46)])
+		for i in points.size():points[i]=rect.position+points[i]*side
+		draw_colored_polygon(points,Color("ff82a6") if action_id=="date" else Color("9eaeff"))
+		return
+	var index: int=0
+	if action_id in GameCatalog.data().actions:index=int(GameCatalog.action(action_id).get("icon",0))
+	elif action_id in GameCatalog.extra().items:index=int(GameCatalog.extra().items[action_id].icon)
+	elif action_id in GameCatalog.extra().skills:index=int(GameCatalog.extra().skills[action_id].icon)
+	if atlas!=null:
+		var cell=atlas.get_size()/Vector2(6,4)
+		draw_texture_rect_region(atlas,rect,Rect2(Vector2(index%6,int(index/6))*cell,cell))

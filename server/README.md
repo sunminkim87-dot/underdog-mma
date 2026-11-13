@@ -1,4 +1,4 @@
-# UNDERDOG 개발용 온라인 서버 (v0.2)
+# UNDERDOG 개발용 온라인 서버 (v0.3 / protocol 2)
 
 이 폴더는 운영 배포된 서비스가 아니라, 클라이언트에서 연결해 검증할 수 있는 개발 서버 코드다. Windows 게임 UI의 '개발 테스트'와 실제 운영 서버 연결을 혼동하지 않는다.
 
@@ -52,3 +52,15 @@ godot --headless --path . --script res://tests/test_online.gd
 ```
 
 단위 테스트 DB는 임시 디렉터리에 만들고 실제 사용자의 DB/구매 기록을 변경하지 않는다. `test_online.gd`는 개발 서버에 독립 게스트를 만들거나 해당 테스트 전용 userdata의 게스트만 사용한다. 실제 서비스 주소로 실행하지 않는다.
+
+## v0.3 추가 검증
+
+`new`의 `base`는 서버의 5종 정규 능력치 표를 사용한다. `buy`, `equip`, `use_item`, `event`, `focus`, `end_relationship`도 동일한 Godot 모듈과 revision/request_id 검증을 거친다. 코치 알바 해금·기술 습득·아이템 보유·관계 결과는 클라이언트 입력으로 덮어쓸 수 없다. 기존 v0.2 서버는 프로토콜이 다르므로 함께 업데이트한다. 기존 SQLite 스키마를 유지하고 저장 JSON에 새 필드만 추가한다.
+
+연결 UI 회귀 검증은 개발 서버(8765) 외에 아래 지연 실패 서버(8771)를 실행한 상태에서, 별도 테스트 userdata로 `tests/test_connection_ui.gd -- --ui-test`를 실행한다.
+
+```sh
+python -m uvicorn server.test_connection_fixture:app --host 127.0.0.1 --port 8771
+```
+
+이 fixture는 지연된 503 응답만 반환하고 계정/구매 권한을 발급하지 않는다. 테스트에서는 연결 중 닫기·서버 자동 이어하기·연결 실패 시 로컬 전환 금지·명시적 로컬 전환과 양쪽 파일 보존을 확인한다.

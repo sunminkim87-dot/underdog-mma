@@ -19,7 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 PROJECT = Path(__file__).resolve().parents[1]
 PRODUCTS = {"cash_100":100,"cash_550":550}
-ALLOWED = {"new":{"name","style","appearance"},"month":set(),"fight":{"strategy"},"schedule":{"schedule"},"preset":{"schedule"},"retire":set(),"upgrade":{"facility"}}
+ALLOWED = {"new":{"name","style","appearance","base"},"month":set(),"fight":{"strategy"},"schedule":{"schedule"},"preset":{"schedule"},"retire":set(),"upgrade":{"facility"},"buy":{"item"},"equip":{"item"},"use_item":{"item"},"event":{"event","choice"},"focus":{"npc"},"end_relationship":set()}
 
 class Mutation(BaseModel):
     model_config = ConfigDict(extra="allow")
@@ -35,7 +35,7 @@ class Receipt(BaseModel):
 def create_app(db_path: str | Path | None = None, verifier: Callable | None = None) -> FastAPI:
     db_path = Path(db_path or os.environ.get("UNDERDOG_DB", str(PROJECT / ".server-data" / "accounts.sqlite3")))
     db_path.parent.mkdir(parents=True,exist_ok=True)
-    api = FastAPI(title="UNDERDOG development server",version="0.2.0")
+    api = FastAPI(title="UNDERDOG development server",version="0.3.0")
     def db():
         conn = sqlite3.connect(db_path,timeout=40)
         conn.row_factory = sqlite3.Row
@@ -59,7 +59,7 @@ def create_app(db_path: str | Path | None = None, verifier: Callable | None = No
         return {"ok":True,"revision":row["revision"],"state":json.loads(row["state"]) if row["state"] else None,"wallet":{"cash":row["cash"]},"capabilities":{"billing_enabled":verifier is not None,"server_authoritative":True,"guest_accounts":True}}
     @api.get("/health")
     def health():
-        return {"ok":True,"protocol":1,"version":"0.2.0","billing_enabled":verifier is not None}
+        return {"ok":True,"protocol":2,"version":"0.3.0","billing_enabled":verifier is not None}
     @api.post("/session")
     def session():
         token = secrets.token_urlsafe(40)

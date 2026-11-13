@@ -1,14 +1,17 @@
-UNDERDOG v0.2.0 — visual/flow/server foundation build
+UNDERDOG v0.3.0 — approved prototype: bases, jobs, events, relationships, items
 Engine: Godot 4.6.3 stable official
 Core: 4756 checks passed, 0 failures
-Rendered UI: 471 checks passed, 0 failures, 14 screenshots
-Server API: 8 test scenarios passed
-Godot real HTTP integration: 12 checks passed
+Progression: 66 checks passed, 0 failures
+Rendered UI: 540 checks passed, 0 failures, 20 screenshots
+Connection UI regressions: 15 checks passed, 0 failures, real HTTP
+Server API: 14 scenarios passed, 0 failures
+Godot real HTTP integration: 16 checks passed, 0 failures
 MMA sample: 6400 matches; long-run career: 150 months
-Windows release: official x86_64 template, PE + embedded PCK verified
-Windows EXE SHA256: d9e24c8206120765a9e22fcb0c2d25b7a55d0a0684f2968a396cae8804375206
-Linux release export and headless startup: passed
-Production server deployment: NOT configured
+Clean project import + core/progression: passed
+Windows release: official x86_64 template, PE32+ + embedded PCK verified
+Windows EXE SHA256: a502bdb89def9f7e6b8c03bd9c5bc8d02181f6bc716fbe863e98bd113d945475
+Linux release export, headless and Xorg GUI startup: passed
+Production online server deployment: NOT configured
 Google Play developer account, real checkout, real Google receipt verification: NOT configured
 Windows native OS execution/code signing and Android device tests: NOT performed
-Old v0.1 archives are preserved.
+Original v0.1/v0.2 files and release archives are preserved.
